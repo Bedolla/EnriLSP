@@ -1,0 +1,16 @@
+{
+  "description": "Check for vscode-html-css installation on session start",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/hooks/check-vscode-html-css.ps1\"",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}

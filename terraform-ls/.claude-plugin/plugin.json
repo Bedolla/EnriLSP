@@ -1,0 +1,8 @@
+{
+  "description": "Terraform language server for Windows",
+  "name": "terraform-ls",
+  "version": "1.0.0",
+  "author": {
+    "name": "Bedolla"
+  }
+}

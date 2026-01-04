@@ -1,0 +1,148 @@
+{
+  "name": "EnriLSP",
+  "metadata": {
+    "description": "LSP plugins for Claude Code on Windows",
+    "version": "1.0.0"
+  },
+  "owner": {
+    "name": "Bedolla"
+  },
+  "plugins": [
+    {
+      "name": "angular-language-server",
+      "source": "./angular-language-server"
+    },
+    {
+      "name": "astro-language-server",
+      "source": "./astro-language-server"
+    },
+    {
+      "name": "bash-language-server",
+      "source": "./bash-language-server"
+    },
+    {
+      "name": "clangd",
+      "source": "./clangd"
+    },
+    {
+      "name": "cmake-language-server",
+      "source": "./cmake-language-server"
+    },
+    {
+      "name": "cssmodules-language-server",
+      "source": "./cssmodules-language-server"
+    },
+    {
+      "name": "dart-analyzer",
+      "source": "./dart-analyzer"
+    },
+    {
+      "name": "dockerfile-language-server",
+      "source": "./dockerfile-language-server"
+    },
+    {
+      "name": "ember-language-server",
+      "source": "./ember-language-server"
+    },
+    {
+      "name": "gopls",
+      "source": "./gopls"
+    },
+    {
+      "name": "graphql-lsp",
+      "source": "./graphql-lsp"
+    },
+    {
+      "name": "intelephense",
+      "source": "./intelephense"
+    },
+    {
+      "name": "jdtls",
+      "source": "./jdtls"
+    },
+    {
+      "name": "json-language-server",
+      "source": "./json-language-server"
+    },
+    {
+      "name": "kotlin-language-server",
+      "source": "./kotlin-language-server"
+    },
+    {
+      "name": "lua-language-server",
+      "source": "./lua-language-server"
+    },
+    {
+      "name": "marksman",
+      "source": "./marksman"
+    },
+    {
+      "name": "omnisharp",
+      "source": "./omnisharp"
+    },
+    {
+      "name": "postgres-language-server",
+      "source": "./postgres-language-server"
+    },
+    {
+      "name": "powershell-editor-services",
+      "source": "./powershell-editor-services"
+    },
+    {
+      "name": "prisma-language-server",
+      "source": "./prisma-language-server"
+    },
+    {
+      "name": "pyright",
+      "source": "./pyright"
+    },
+    {
+      "name": "rust-analyzer",
+      "source": "./rust-analyzer"
+    },
+    {
+      "name": "solargraph",
+      "source": "./solargraph"
+    },
+    {
+      "name": "sqls",
+      "source": "./sqls"
+    },
+    {
+      "name": "svelte-language-server",
+      "source": "./svelte-language-server"
+    },
+    {
+      "name": "tailwindcss-language-server",
+      "source": "./tailwindcss-language-server"
+    },
+    {
+      "name": "terraform-ls",
+      "source": "./terraform-ls"
+    },
+    {
+      "name": "texlab",
+      "source": "./texlab"
+    },
+    {
+      "name": "vscode-html-css",
+      "source": "./vscode-html-css"
+    },
+    {
+      "name": "vtsls",
+      "source": "./vtsls"
+    },
+    {
+      "name": "vue-language-server",
+      "source": "./vue-language-server"
+    },
+    {
+      "name": "yaml-language-server",
+      "source": "./yaml-language-server"
+    },
+    {
+      "name": "zls",
+      "source": "./zls"
+    }
+  ]
+}

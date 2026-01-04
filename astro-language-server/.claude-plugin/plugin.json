@@ -1,0 +1,8 @@
+{
+  "description": "Astro language server for Windows",
+  "name": "astro-language-server",
+  "version": "1.0.0",
+  "author": {
+    "name": "Bedolla"
+  }
+}

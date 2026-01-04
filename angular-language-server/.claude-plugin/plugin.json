@@ -1,0 +1,8 @@
+{
+  "description": "Angular language server for Windows",
+  "name": "angular-language-server",
+  "version": "1.0.0",
+  "author": {
+    "name": "Bedolla"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "hooks": {
+    "marksman": {
+      "command": "powershell.exe",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "{{configDir}}\\marksman\\hooks\\check-marksman.ps1"
+      ]
+    }
+  }
+}

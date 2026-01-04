@@ -1,0 +1,13 @@
+{
+  "hooks": {
+    "tailwindcss-language-server": {
+      "command": "powershell.exe",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "{{configDir}}\\tailwindcss-language-server\\hooks\\check-tailwindcss-language-server.ps1"
+      ]
+    }
+  }
+}

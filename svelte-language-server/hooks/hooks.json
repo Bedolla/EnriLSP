@@ -1,0 +1,13 @@
+{
+  "hooks": {
+    "svelte-language-server": {
+      "command": "powershell.exe",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "{{configDir}}\\svelte-language-server\\hooks\\check-svelte-language-server.ps1"
+      ]
+    }
+  }
+}

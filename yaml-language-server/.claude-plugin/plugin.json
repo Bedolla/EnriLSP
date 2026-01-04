@@ -1,0 +1,8 @@
+{
+  "description": "YAML language server for Windows",
+  "name": "yaml-language-server",
+  "version": "1.0.0",
+  "author": {
+    "name": "Bedolla"
+  }
+}

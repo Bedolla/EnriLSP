@@ -1,0 +1,16 @@
+{
+  "description": "Check for solargraph installation on session start",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/hooks/check-solargraph.ps1\"",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}

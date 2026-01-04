@@ -1,0 +1,16 @@
+{
+  "description": "Check for pyright installation on session start",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/hooks/check-pyright.ps1\"",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}

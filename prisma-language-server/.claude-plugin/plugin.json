@@ -1,0 +1,8 @@
+{
+  "description": "Prisma language server for Windows",
+  "name": "prisma-language-server",
+  "version": "1.0.0",
+  "author": {
+    "name": "Bedolla"
+  }
+}

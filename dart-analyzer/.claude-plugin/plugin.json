@@ -1,0 +1,8 @@
+{
+  "description": "Dart/Flutter language server for Windows",
+  "name": "dart-analyzer",
+  "version": "1.0.0",
+  "author": {
+    "name": "Bedolla"
+  }
+}

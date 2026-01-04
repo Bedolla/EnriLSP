@@ -1,0 +1,8 @@
+{
+  "description": "PowerShell language server for Windows",
+  "name": "powershell-editor-services",
+  "version": "1.0.0",
+  "author": {
+    "name": "Bedolla"
+  }
+}

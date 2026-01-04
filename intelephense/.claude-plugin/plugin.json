@@ -1,0 +1,8 @@
+{
+  "description": "PHP language server for Windows",
+  "name": "intelephense",
+  "version": "1.0.0",
+  "author": {
+    "name": "Bedolla"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "description": "C/C++ language server for Windows",
+  "name": "clangd",
+  "version": "1.0.0",
+  "author": {
+    "name": "Bedolla"
+  }
+}

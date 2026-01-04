@@ -1,0 +1,13 @@
+{
+  "hooks": {
+    "prisma-language-server": {
+      "command": "powershell.exe",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "{{configDir}}\\prisma-language-server\\hooks\\check-prisma-language-server.ps1"
+      ]
+    }
+  }
+}

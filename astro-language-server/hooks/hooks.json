@@ -1,0 +1,13 @@
+{
+  "hooks": {
+    "astro-language-server": {
+      "command": "powershell.exe",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "{{configDir}}\\astro-language-server\\hooks\\check-astro-language-server.ps1"
+      ]
+    }
+  }
+}

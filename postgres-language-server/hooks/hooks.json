@@ -1,0 +1,13 @@
+{
+  "hooks": {
+    "postgres-language-server": {
+      "command": "powershell.exe",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "{{configDir}}\\postgres-language-server\\hooks\\check-postgres-language-server.ps1"
+      ]
+    }
+  }
+}

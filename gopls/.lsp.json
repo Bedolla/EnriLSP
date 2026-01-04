@@ -1,0 +1,15 @@
+{
+  "go": {
+    "command": "gopls",
+    "extensionToLanguage": {
+      ".go": "go"
+    },
+    "loggingConfig": {
+      "args": [
+        "-rpc.trace",
+        "-logfile",
+        "${CLAUDE_PLUGIN_LSP_LOG_FILE}"
+      ]
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "description": "Zig language server for Windows",
+  "name": "zls",
+  "version": "1.0.0",
+  "author": {
+    "name": "Bedolla"
+  }
+}

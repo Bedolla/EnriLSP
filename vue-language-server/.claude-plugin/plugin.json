@@ -1,0 +1,8 @@
+{
+  "description": "Vue.js language server for Windows",
+  "name": "vue-language-server",
+  "version": "1.0.0",
+  "author": {
+    "name": "Bedolla"
+  }
+}

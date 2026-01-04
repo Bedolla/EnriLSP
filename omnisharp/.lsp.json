@@ -1,0 +1,17 @@
+{
+  "csharp": {
+    "command": "OmniSharp",
+    "args": [
+      "-lsp"
+    ],
+    "extensionToLanguage": {
+      ".cs": "csharp",
+      ".csx": "csharp"
+    },
+    "loggingConfig": {
+      "args": [
+        "-v"
+      ]
+    }
+  }
+}

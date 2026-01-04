@@ -1,0 +1,8 @@
+{
+  "description": "Go language server for Windows",
+  "name": "gopls",
+  "version": "1.0.0",
+  "author": {
+    "name": "Bedolla"
+  }
+}

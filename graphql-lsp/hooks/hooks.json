@@ -1,0 +1,13 @@
+{
+  "hooks": {
+    "graphql-lsp": {
+      "command": "powershell.exe",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "{{configDir}}\\graphql-lsp\\hooks\\check-graphql-lsp.ps1"
+      ]
+    }
+  }
+}

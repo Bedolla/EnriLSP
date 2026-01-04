@@ -1,0 +1,13 @@
+{
+  "hooks": {
+    "postEnvironmentInstall": {
+      "command": "powershell.exe",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "hooks/check-texlab.ps1"
+      ]
+    }
+  }
+}

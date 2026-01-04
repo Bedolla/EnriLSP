@@ -1,0 +1,8 @@
+{
+  "description": "CSS Modules language server for Windows",
+  "name": "cssmodules-language-server",
+  "version": "1.0.0",
+  "author": {
+    "name": "Bedolla"
+  }
+}

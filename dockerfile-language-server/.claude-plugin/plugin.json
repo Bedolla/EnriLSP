@@ -1,0 +1,8 @@
+{
+  "description": "Dockerfile language server for Windows",
+  "name": "dockerfile-language-server",
+  "version": "1.0.0",
+  "author": {
+    "name": "Bedolla"
+  }
+}

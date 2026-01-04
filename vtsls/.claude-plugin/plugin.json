@@ -1,0 +1,8 @@
+{
+  "description": "TypeScript/JavaScript language server for Windows",
+  "name": "vtsls",
+  "version": "1.0.0",
+  "author": {
+    "name": "Bedolla"
+  }
+}

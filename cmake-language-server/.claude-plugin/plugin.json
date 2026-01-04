@@ -1,0 +1,8 @@
+{
+  "description": "CMake language server for Windows",
+  "name": "cmake-language-server",
+  "version": "1.0.0",
+  "author": {
+    "name": "Bedolla"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "description": "Ember.js language server for Windows",
+  "name": "ember-language-server",
+  "version": "1.0.0",
+  "author": {
+    "name": "Bedolla"
+  }
+}

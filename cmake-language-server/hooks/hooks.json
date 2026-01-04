@@ -1,0 +1,13 @@
+{
+  "hooks": {
+    "cmake-language-server": {
+      "command": "powershell.exe",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "{{configDir}}\\cmake-language-server\\hooks\\check-cmake-language-server.ps1"
+      ]
+    }
+  }
+}

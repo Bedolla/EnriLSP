@@ -1,0 +1,19 @@
+{
+  "dart": {
+    "command": "dart",
+    "args": [
+      "language-server",
+      "--client-id=claude-code.dart-analyzer",
+      "--client-version=1.0.0"
+    ],
+    "extensionToLanguage": {
+      ".dart": "dart"
+    },
+    "loggingConfig": {
+      "args": [
+        "--instrumentation-log-file",
+        "${CLAUDE_PLUGIN_LSP_LOG_FILE}"
+      ]
+    }
+  }
+}

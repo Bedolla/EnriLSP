@@ -1,0 +1,8 @@
+{
+  "description": "PostgreSQL language server for Windows",
+  "name": "postgres-language-server",
+  "version": "1.0.0",
+  "author": {
+    "name": "Bedolla"
+  }
+}

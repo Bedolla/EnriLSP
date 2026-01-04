@@ -1,0 +1,8 @@
+{
+  "description": "LaTeX language server for Windows",
+  "name": "texlab",
+  "version": "1.0.0",
+  "author": {
+    "name": "Bedolla"
+  }
+}

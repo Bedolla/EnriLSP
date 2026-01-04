@@ -1,0 +1,8 @@
+{
+  "description": "Bash/Shell language server for Windows",
+  "name": "bash-language-server",
+  "version": "1.0.0",
+  "author": {
+    "name": "Bedolla"
+  }
+}

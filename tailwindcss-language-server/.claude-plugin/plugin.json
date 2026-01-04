@@ -1,0 +1,8 @@
+{
+  "description": "TailwindCSS language server for Windows",
+  "name": "tailwindcss-language-server",
+  "version": "1.0.0",
+  "author": {
+    "name": "Bedolla"
+  }
+}

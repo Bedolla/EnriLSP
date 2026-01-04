@@ -1,0 +1,8 @@
+{
+  "description": "Lua language server for Windows",
+  "name": "lua-language-server",
+  "version": "1.0.0",
+  "author": {
+    "name": "Bedolla"
+  }
+}

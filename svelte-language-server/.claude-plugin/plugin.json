@@ -1,0 +1,8 @@
+{
+  "description": "Svelte language server for Windows",
+  "name": "svelte-language-server",
+  "version": "1.0.0",
+  "author": {
+    "name": "Bedolla"
+  }
+}

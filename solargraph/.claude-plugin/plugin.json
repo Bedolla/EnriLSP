@@ -1,0 +1,8 @@
+{
+  "description": "Ruby language server for Windows",
+  "name": "solargraph",
+  "version": "1.0.0",
+  "author": {
+    "name": "Bedolla"
+  }
+}

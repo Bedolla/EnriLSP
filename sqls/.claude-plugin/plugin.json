@@ -1,0 +1,8 @@
+{
+  "description": "SQL language server for Windows",
+  "name": "sqls",
+  "version": "1.0.0",
+  "author": {
+    "name": "Bedolla"
+  }
+}

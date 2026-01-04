@@ -1,0 +1,8 @@
+{
+  "description": "Rust language server for Windows",
+  "name": "rust-analyzer",
+  "version": "1.0.0",
+  "author": {
+    "name": "Bedolla"
+  }
+}

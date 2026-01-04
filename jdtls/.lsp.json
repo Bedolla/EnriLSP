@@ -1,0 +1,8 @@
+{
+  "java": {
+    "command": "jdtls",
+    "extensionToLanguage": {
+      ".java": "java"
+    }
+  }
+}
