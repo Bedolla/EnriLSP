@@ -159,7 +159,10 @@ function Start-ServerProcess([string] $cmd, [string[]] $args) {
   $psi.UseShellExecute = $false
   $psi.RedirectStandardInput = $true
   $psi.RedirectStandardOutput = $true
-  $psi.RedirectStandardError = $true
+  # In PowerShell 7+, Process.ErrorDataReceived event handlers can run on threads
+  # without an attached Runspace, which causes a fatal PSInvalidOperationException.
+  # Let stderr inherit so it still reaches Claude Code logs without async handlers.
+  $psi.RedirectStandardError = $false
   $psi.CreateNoWindow = $true
 
   if ($cmd -match '\.(cmd|bat)$') {
@@ -179,17 +182,9 @@ function Start-ServerProcess([string] $cmd, [string[]] $args) {
   $proc = New-Object System.Diagnostics.Process
   $proc.StartInfo = $psi
 
-  $proc.add_ErrorDataReceived({
-    param($sender, $e)
-    if ($null -ne $e.Data -and $e.Data.Length -gt 0) {
-      [Console]::Error.WriteLine($e.Data)
-    }
-  })
-
   if (-not $proc.Start()) {
     throw "Failed to start server process"
   }
-  $proc.BeginErrorReadLine() | Out-Null
   return $proc
 }
 
