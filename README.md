@@ -352,7 +352,46 @@ Interactive: Use `/plugin`, go to the Discover tab, select a plugin, and choose 
 <details>
 <summary><strong>Install all 33 plugins</strong></summary>
 
-Run each command separately:
+**CLI (copy and paste into terminal):**
+
+```powershell
+claude plugin marketplace add Bedolla/EnriLSP
+claude plugin install angular-language-server@EnriLSP
+claude plugin install astro-language-server@EnriLSP
+claude plugin install bash-language-server@EnriLSP
+claude plugin install clangd@EnriLSP
+claude plugin install cmake-language-server@EnriLSP
+claude plugin install cssmodules-language-server@EnriLSP
+claude plugin install dart-analyzer@EnriLSP
+claude plugin install dockerfile-language-server@EnriLSP
+claude plugin install ember-language-server@EnriLSP
+claude plugin install gopls@EnriLSP
+claude plugin install graphql-lsp@EnriLSP
+claude plugin install intelephense@EnriLSP
+claude plugin install jdtls@EnriLSP
+claude plugin install kotlin-language-server@EnriLSP
+claude plugin install lua-language-server@EnriLSP
+claude plugin install marksman@EnriLSP
+claude plugin install omnisharp@EnriLSP
+claude plugin install postgres-language-server@EnriLSP
+claude plugin install powershell-editor-services@EnriLSP
+claude plugin install prisma-language-server@EnriLSP
+claude plugin install pyright@EnriLSP
+claude plugin install rust-analyzer@EnriLSP
+claude plugin install solargraph@EnriLSP
+claude plugin install sqls@EnriLSP
+claude plugin install svelte-language-server@EnriLSP
+claude plugin install tailwindcss-language-server@EnriLSP
+claude plugin install terraform-ls@EnriLSP
+claude plugin install texlab@EnriLSP
+claude plugin install vscode-langservers@EnriLSP
+claude plugin install vtsls@EnriLSP
+claude plugin install vue-language-server@EnriLSP
+claude plugin install yaml-language-server@EnriLSP
+claude plugin install zls@EnriLSP
+```
+
+**Interactive (inside Claude Code):**
 
 ```
 /plugin install angular-language-server@EnriLSP

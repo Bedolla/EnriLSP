@@ -5,7 +5,7 @@
   "author": {
     "name": "Bedolla"
   },
-  "homepage": "https://github.com/Bedolla/EnriLSP#ember-language-server",
+  "homepage": "https://github.com/Bedolla/EnriLSP#supported-languages",
   "repository": "https://github.com/Bedolla/EnriLSP",
   "license": "MIT",
   "keywords": [
@@ -14,6 +14,5 @@
     "javascript",
     "frontend"
   ],
-  "hooks": "./hooks/hooks.json",
   "lspServers": "./.lsp.json"
 }

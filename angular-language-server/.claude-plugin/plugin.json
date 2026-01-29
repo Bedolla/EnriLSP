@@ -5,7 +5,7 @@
   "author": {
     "name": "Bedolla"
   },
-  "homepage": "https://github.com/Bedolla/EnriLSP#angular-language-server",
+  "homepage": "https://github.com/Bedolla/EnriLSP#supported-languages",
   "repository": "https://github.com/Bedolla/EnriLSP",
   "license": "MIT",
   "keywords": [
@@ -15,6 +15,5 @@
     "frontend",
     "framework"
   ],
-  "hooks": "./hooks/hooks.json",
   "lspServers": "./.lsp.json"
 }
