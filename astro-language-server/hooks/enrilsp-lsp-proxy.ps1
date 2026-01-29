@@ -222,7 +222,12 @@ try {
       if ($n -le 0) {
         break
       }
-      $buffer.AddRange($readBuf[0..($n - 1)])
+      # NOTE: In Windows PowerShell 5.1, slicing a byte[] (e.g. $readBuf[0..($n-1)])
+      # yields System.Object[], which breaks List[byte].AddRange(IEnumerable[byte]).
+      # Copy into a real byte[] before AddRange.
+      $chunk = New-Object byte[] $n
+      [System.Array]::Copy($readBuf, 0, $chunk, 0, $n)
+      $buffer.AddRange($chunk)
       $headerEnd = Find-HeaderEnd $buffer
     }
 
@@ -244,7 +249,9 @@ try {
       if ($n -le 0) {
         break
       }
-      $buffer.AddRange($readBuf[0..($n - 1)])
+      $chunk = New-Object byte[] $n
+      [System.Array]::Copy($readBuf, 0, $chunk, 0, $n)
+      $buffer.AddRange($chunk)
     }
 
     if ($buffer.Count -lt ($bodyStart + $contentLength)) {
@@ -279,4 +286,3 @@ finally {
 
 try { $copyTask.Wait() } catch {}
 try { $server.WaitForExit(2000) | Out-Null } catch {}
-

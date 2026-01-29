@@ -84,10 +84,11 @@ class KotlinLspInstaller {
       $arch = $env:PROCESSOR_ARCHITEW6432
     }
 
-    switch ($arch.ToUpperInvariant()) {
-      "ARM64" { return "win-aarch64" }
-      default { return "win-x64" }
+    if (-not [string]::IsNullOrWhiteSpace($arch) -and $arch.ToUpperInvariant() -eq "ARM64") {
+      return "win-aarch64"
     }
+
+    return "win-x64"
   }
 
   [string] GetLatestVersion() {

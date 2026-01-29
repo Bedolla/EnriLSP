@@ -54,6 +54,10 @@ class EnvironmentManager {
     Write-Host "[$($this.PluginName)] $message" -ForegroundColor Green
   }
 
+  [void] WriteWarning([string] $message) {
+    Write-Host "[$($this.PluginName)] $message" -ForegroundColor Yellow
+  }
+
   [void] WriteError([string] $message) {
     # Write to stderr so Claude Code Setup hooks display the message to user
     [Console]::Error.WriteLine("[$($this.PluginName)] $message")
@@ -135,12 +139,43 @@ class CmakeLspInstaller {
     $this.VenvLspExe = Join-Path $this.VenvDir "Scripts\\cmake-language-server.exe"
   }
 
+  [string] GetVenvPythonVersion() {
+    if (-not (Test-Path $this.VenvPython -PathType Leaf)) {
+      return ""
+    }
+
+    try {
+      return (& $this.VenvPython -c "import sys; print(f'{sys.version_info[0]}.{sys.version_info[1]}')" 2>$null).Trim()
+    }
+    catch {
+      return ""
+    }
+  }
+
   [PythonCommand] FindPythonCommand() {
+    # Prefer a dedicated Python 3.13/3.12 install by absolute path. This avoids
+    # the common Windows situation where `py -3.13` or `python` may resolve to
+    # the default Python 3.14 (which breaks older pygls stacks).
+    foreach ($path in $this.PythonKnownPaths) {
+      if (Test-Path $path -PathType Leaf) {
+        try {
+          [string] $ver = (& $path -c "import sys; print(sys.version_info[0], sys.version_info[1])" 2>$null) -join " "
+          if ($ver -match '^3\s+(12|13)$') {
+            $this.EnvManager.WriteInfo("Using Python: $path (reported: $ver)")
+            return [PythonCommand]::new($path, @())
+          }
+        }
+        catch {}
+      }
+    }
+
+    # Next preference: Windows Python launcher with explicit version.
     if ($this.EnvManager.CommandExists("py")) {
       foreach ($arg in $this.PreferredPyLauncherArgs) {
         try {
-          & py $arg -c "import sys; print(sys.version_info[0], sys.version_info[1])" 2>$null | Out-Null
-          if ($LASTEXITCODE -eq 0) {
+          [string] $ver = (& py $arg -c "import sys; print(sys.version_info[0], sys.version_info[1])" 2>$null) -join " "
+          if ($LASTEXITCODE -eq 0 -and $ver -match '^3\s+(12|13)$') {
+            $this.EnvManager.WriteInfo("Using Python: py $arg (reported: $ver)")
             return [PythonCommand]::new("py", @($arg))
           }
         }
@@ -148,16 +183,11 @@ class CmakeLspInstaller {
       }
     }
 
-    foreach ($path in $this.PythonKnownPaths) {
-      if (Test-Path $path -PathType Leaf) {
-        return [PythonCommand]::new($path, @())
-      }
-    }
-
     if ($this.EnvManager.CommandExists("python")) {
       try {
-        [string] $ver = (& python -c "import sys; print(f'{sys.version_info[0]}.{sys.version_info[1]}')" 2>$null).Trim()
-        if ($LASTEXITCODE -eq 0 -and $ver -match '^3\.(12|13)$') {
+        [string] $ver = (& python -c "import sys; print(sys.version_info[0], sys.version_info[1])" 2>$null) -join " "
+        if ($LASTEXITCODE -eq 0 -and $ver -match '^3\s+(12|13)$') {
+          $this.EnvManager.WriteInfo("Using Python: python (reported: $ver)")
           return [PythonCommand]::new("python", @())
         }
       }
@@ -168,7 +198,20 @@ class CmakeLspInstaller {
   }
 
   [bool] IsLspInstalled() {
-    return (Test-Path $this.VenvLspExe -PathType Leaf)
+    if (-not (Test-Path $this.VenvLspExe -PathType Leaf)) {
+      return $false
+    }
+
+    [string] $venvVersion = $this.GetVenvPythonVersion()
+    if ($venvVersion -match '^3\.(12|13)$') {
+      return $true
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($venvVersion)) {
+      $this.EnvManager.WriteWarning("Existing venv uses Python $venvVersion. Recreating to avoid Python 3.14 incompatibilities.")
+    }
+
+    return $false
   }
 
   [bool] EnsureInstallRoot() {
@@ -205,7 +248,19 @@ class CmakeLspInstaller {
     }
 
     if (Test-Path $this.VenvPython -PathType Leaf) {
-      return $true
+      [string] $venvVersion = $this.GetVenvPythonVersion()
+      if ($venvVersion -match '^3\.(12|13)$') {
+        return $true
+      }
+
+      $this.EnvManager.WriteWarning("Existing venv Python version is '$venvVersion'. Removing venv so it can be recreated with Python 3.13/3.12.")
+      try {
+        Remove-Item -Path $this.VenvDir -Recurse -Force -ErrorAction Stop
+      }
+      catch {
+        $this.EnvManager.WriteError("Failed to remove old venv: $($_.Exception.Message)")
+        return $false
+      }
     }
 
     $this.EnvManager.WriteInfo("Creating venv: $($this.VenvDir)")
