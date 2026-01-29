@@ -98,10 +98,10 @@ class PackageInstaller {
       return [PackageManagerResult]::new($false, "winget not available", "")
     }
 
-    $this.EnvManager.WriteInfo("Installing via winget (user scope)...")
-    $process = Start-Process -FilePath "winget" -ArgumentList "install", $packageId, "--silent", "--accept-package-agreements", "--accept-source-agreements" -Wait -PassThru -NoNewWindow
+    $this.EnvManager.WriteInfo("Installing via winget...")
+    & winget install $packageId --silent --disable-interactivity --accept-package-agreements --accept-source-agreements 2>&1 | Out-Null
 
-    if ($process.ExitCode -eq 0) {
+    if ($LASTEXITCODE -eq 0) {
       return [PackageManagerResult]::new($true, "Installed successfully", "winget")
     }
     return [PackageManagerResult]::new($false, "Installation failed", "winget")
@@ -115,6 +115,7 @@ class TerraformLsInstaller {
   hidden [string[]] $LspKnownPaths = @(
     "$env:LOCALAPPDATA\terraform-ls\terraform-ls.exe",
     "C:\Program Files\terraform-ls\terraform-ls.exe",
+    "$env:LOCALAPPDATA\Microsoft\WinGet\Links\terraform-ls.exe",
     "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\Hashicorp.Terraform-LS_*\terraform-ls.exe"
   )
   hidden [string] $WingetPackageId = "Hashicorp.Terraform-LS"

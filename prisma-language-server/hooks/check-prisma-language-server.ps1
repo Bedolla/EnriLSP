@@ -86,8 +86,8 @@ class PackageInstaller {
 
     $this.EnvManager.WriteInfo("Installing $packageName via winget...")
     try {
-      $process = Start-Process -FilePath "winget" -ArgumentList "install", "--id", $packageId, "-e", "--accept-source-agreements", "--accept-package-agreements", "--scope", "user" -Wait -PassThru -NoNewWindow
-      if ($process.ExitCode -eq 0) {
+      & winget install --id $packageId -e --silent --disable-interactivity --accept-source-agreements --accept-package-agreements --scope user 2>&1 | Out-Null
+      if ($LASTEXITCODE -eq 0) {
         return [PackageManagerResult]::new($true, "$packageName installed successfully", "winget")
       }
     }
@@ -135,8 +135,8 @@ class PrismaLspInstaller {
     $this.EnvManager.WriteInfo("Installing @prisma/language-server via npm...")
     
     try {
-      $process = Start-Process -FilePath "npm" -ArgumentList "install", "-g", "@prisma/language-server" -Wait -PassThru -NoNewWindow
-      if ($process.ExitCode -eq 0) {
+      & npm install -g "@prisma/language-server" 2>&1 | Out-Null
+      if ($LASTEXITCODE -eq 0) {
         $this.EnvManager.AddToUserPath($this.NpmBinPath)
         $this.EnvManager.RefreshSessionPath()
         $this.EnvManager.WriteSuccess("@prisma/language-server installed successfully")

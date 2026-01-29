@@ -86,8 +86,8 @@ class PackageInstaller {
 
     $this.EnvManager.WriteInfo("Installing $packageName via winget...")
     try {
-      $process = Start-Process -FilePath "winget" -ArgumentList "install", "--id", $packageId, "-e", "--accept-source-agreements", "--accept-package-agreements", "--scope", "user" -Wait -PassThru -NoNewWindow
-      if ($process.ExitCode -eq 0) {
+      & winget install --id $packageId -e --silent --disable-interactivity --accept-source-agreements --accept-package-agreements --scope user 2>&1 | Out-Null
+      if ($LASTEXITCODE -eq 0) {
         return [PackageManagerResult]::new($true, "$packageName installed successfully", "winget")
       }
     }
@@ -143,8 +143,8 @@ class CmakeLspInstaller {
     $this.EnvManager.WriteInfo("Installing cmake-language-server via pip...")
     
     try {
-      $process = Start-Process -FilePath $python -ArgumentList "-m", "pip", "install", "--user", "cmake-language-server" -Wait -PassThru -NoNewWindow
-      if ($process.ExitCode -eq 0) {
+      & $python -m pip install --user "cmake-language-server" 2>&1 | Out-Null
+      if ($LASTEXITCODE -eq 0) {
         # Add Python Scripts to PATH - find the correct Python version
         [string[]] $pythonPaths = @(
           "$env:APPDATA\Python\Python314\Scripts",

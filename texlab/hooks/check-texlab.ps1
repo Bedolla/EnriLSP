@@ -98,10 +98,10 @@ class PackageInstaller {
       return [PackageManagerResult]::new($false, "winget not available", "")
     }
 
-    $this.EnvManager.WriteInfo("Installing via winget (user scope)...")
-    $process = Start-Process -FilePath "winget" -ArgumentList "install", $packageId, "--silent", "--accept-package-agreements", "--accept-source-agreements" -Wait -PassThru -NoNewWindow
+    $this.EnvManager.WriteInfo("Installing via winget...")
+    & winget install $packageId --silent --disable-interactivity --accept-package-agreements --accept-source-agreements 2>&1 | Out-Null
 
-    if ($process.ExitCode -eq 0) {
+    if ($LASTEXITCODE -eq 0) {
       return [PackageManagerResult]::new($true, "Installed successfully", "winget")
     }
     return [PackageManagerResult]::new($false, "Installation failed", "winget")
@@ -114,6 +114,7 @@ class TexlabInstaller {
   hidden [string] $InstallDir = "$env:LOCALAPPDATA\texlab"
   hidden [string[]] $LspKnownPaths = @(
     "$env:LOCALAPPDATA\texlab\texlab.exe",
+    "$env:LOCALAPPDATA\Microsoft\WinGet\Links\texlab.exe",
     "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\texlab.texlab_*\texlab.exe"
   )
   hidden [string] $WingetPackageId = "texlab.texlab"

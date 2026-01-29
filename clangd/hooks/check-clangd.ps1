@@ -126,9 +126,23 @@ class PackageInstaller {
     }
 
     $this.EnvManager.WriteInfo("Installing via winget (user scope)...")
-    $process = Start-Process -FilePath "winget" -ArgumentList "install", $packageId, "--silent", "--accept-package-agreements", "--accept-source-agreements" -Wait -PassThru -NoNewWindow
 
-    if ($process.ExitCode -eq 0) {
+    # NOTE: winget prints progress bars and other control characters that can overwhelm
+    # upstream hook runners. Suppress output and just rely on exit code.
+    [string[]] $wingetArgs = @(
+      "install",
+      $packageId,
+      "--silent",
+      "--disable-interactivity",
+      "--scope",
+      "user",
+      "--accept-package-agreements",
+      "--accept-source-agreements"
+    )
+
+    & winget @wingetArgs 2>&1 | Out-Null
+
+    if ($LASTEXITCODE -eq 0) {
       return [PackageManagerResult]::new($true, "Installed successfully", "winget")
     }
     return [PackageManagerResult]::new($false, "Installation failed", "winget")
@@ -156,7 +170,8 @@ class ClangdInstaller {
     "C:\Program Files\LLVM\bin\clangd.exe",
     "C:\Program Files (x86)\LLVM\bin\clangd.exe",
     "$env:LOCALAPPDATA\Programs\LLVM\bin\clangd.exe",
-    "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\LLVM.clangd*\bin\clangd.exe"
+    "$env:LOCALAPPDATA\Microsoft\WinGet\Links\clangd.exe",
+    "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\LLVM.clangd*\clangd_*\bin\clangd.exe"
   )
   # Use LLVM.clangd (smaller, just clangd) as PRIMARY, LLVM.LLVM as fallback
   hidden [string] $WingetPrimaryId = "LLVM.clangd"
