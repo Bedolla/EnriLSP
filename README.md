@@ -2,7 +2,7 @@
 
 Claude Code plugin marketplace providing LSP support for Windows. Includes 33 language server plugins.
 
-Runtimes and language servers are installed automatically via winget when you run `claude --init`. No admin privileges required.
+Runtimes and language servers are installed automatically on session start (when you run `claude`) via plugin hooks. No admin privileges required.
 
 ---
 
@@ -144,7 +144,7 @@ Step 3: Run setup once to install dependencies
 ```
 Then in your terminal (PowerShell):
 ```powershell
-claude --init
+claude
 ```
 
 Step 4: Normal daily use
@@ -152,35 +152,25 @@ Step 4: Normal daily use
 claude
 ```
 
-> Note: You only need `--init` once after installing plugins. For daily use, run `claude`. The LSP servers start automatically.
+> Note: Setup hooks run automatically when Claude Code starts. After the first install, daily usage is just `claude`.
 
 ---
 
-## Understanding `--init` vs Normal Usage
+## Setup vs Normal Usage
 
-| Command | What it does | When to use |
-|---------|--------------|-------------|
-| `claude --init` | Runs setup hooks to install runtimes and LSP servers | Once after installing new plugins |
-| `claude` | Starts Claude Code with LSP servers already running | Daily use |
+| Scenario | What happens | What you do |
+|----------|--------------|-------------|
+| First run after installing or updating plugins | SessionStart hooks install missing runtimes/LSPs | Run `claude` (may take a few minutes) |
+| Daily use | Hooks become no-ops, LSP servers start normally | Run `claude` |
 
-
-### When do I need to run `--init` again?
-
-| Scenario | Need `--init`? |
-|----------|----------------|
-| Daily use | No |
-| After installing a new plugin | Yes |
-| After updating plugins | Yes (recommended) |
-| After Windows restart | No |
-| After updating Claude Code | No |
 
 ---
 
 ## How It Works
 
-### One-time setup (`claude --init`)
+### Setup phase (SessionStart hooks)
 
-1. Setup Hook runs for each installed plugin
+1. A SessionStart hook runs for each installed plugin
    - Checks if language server is installed
    - If missing, auto-installs via winget/pip/npm
    - Adds to PATH
@@ -207,7 +197,7 @@ claude
    - Navigates code like an IDE
    - Makes precise, context-aware edits
 
-> The `--init` flag installs the tools. Claude Code automatically uses them every time you run `claude`.
+> Setup hooks install the tools. Claude Code automatically uses them every time you run `claude`.
 
 ### Plugin Structure
 
@@ -219,7 +209,7 @@ pyright/
 │   └── plugin.json       # Plugin metadata
 ├── .lsp.json             # LSP server configuration
 └── hooks/
-    ├── hooks.json        # Setup hook definition
+    ├── hooks.json        # SessionStart hook definition
     └── check-pyright.ps1 # Installation script
 ```
 
@@ -227,14 +217,14 @@ pyright/
 |------|---------|
 | `plugin.json` | Name, version, author |
 | `.lsp.json` | Tells Claude Code how to connect to the LSP server |
-| `hooks.json` | Triggers installation on `claude --init` |
+| `hooks.json` | Triggers installation on session start (SessionStart) |
 | `check-*.ps1` | PowerShell script that installs runtime + LSP server |
 
 ## Features
 
 | Feature | Description |
 |---------|-------------|
-| Auto-install | Runtimes and LSP servers install when you run `claude --init` |
+| Auto-install | Runtimes and LSP servers install on session start (first run after install/update) |
 | Windows-native | PowerShell scripts, no bash or WSL required |
 | User-level paths | Uses winget + AppData paths, does not require admin |
 | 33 plugins | Go, Python, TypeScript, Java, C#, Rust, and [more](#supported-languages) |
@@ -433,10 +423,10 @@ claude plugin install zls@EnriLSP
 
 ### Step 3: Run Setup (First Time Only)
 
-After installing plugins, run the setup command to install missing runtimes and LSP servers:
+After installing plugins, start Claude Code once so the SessionStart hooks can install missing runtimes and LSP servers:
 
 ```powershell
-claude --init
+claude
 ```
 
 This triggers the installation scripts for all installed plugins.
@@ -467,7 +457,7 @@ CLI:
 claude plugin update pyright@EnriLSP
 ```
 
-After updating, run `claude --init` once to apply any new setup scripts, then use `claude` normally.
+After updating, restart `claude` once to apply any new setup scripts, then use `claude` normally.
 
 ## Uninstalling
 
@@ -600,11 +590,11 @@ Use Tab to switch between tabs, type to filter, Enter to select.
 
 ## Auto-Installation
 
-EnriLSP uses Setup hooks to automatically install missing runtimes and language servers. This happens only once when you run `claude --init` — after that, just use `claude` normally.
+EnriLSP uses SessionStart hooks to automatically install missing runtimes and language servers when you start Claude Code (`claude`). Once everything is installed, these hooks become fast no-ops.
 
 ### How it works
 
-1. You run `claude --init` after installing plugins
+1. You start `claude` after installing plugins
 2. Each plugin's `check-*.ps1` script runs and checks if the LSP server is available
 3. If missing, it checks for the required runtime (Go, Python, Node.js, etc.)
 4. If the runtime is also missing, it attempts auto-installation via:
@@ -613,26 +603,16 @@ EnriLSP uses Setup hooks to automatically install missing runtimes and language 
 5. Once the runtime is installed, the LSP server is installed via the language's package manager (pip, npm, gem, go install, etc.)
 6. PATH is updated in both the user registry and current session
 
-### When to run `--init`
+### When does setup run?
 
-| Scenario | Command | Frequency |
-|----------|---------|-----------|
-| First time after installing plugins | `claude --init` | Once |
-| After installing new plugins | `claude --init` | Once per new plugin |
-| After updating plugins | `claude --init` | Recommended |
-| Daily use | `claude` | Always |
+| Scenario | What to do |
+|----------|------------|
+| First time after installing plugins | Start `claude` once and let hooks install dependencies |
+| After installing new plugins | Restart `claude` (hooks will install what's missing) |
+| After updating plugins | Restart `claude` (recommended) |
+| Daily use | Start `claude` |
 
-> Note: `--init` installs dependencies. After that, just run `claude`. LSP servers start automatically.
-
-### Alternative: `--init-only`
-
-If you want to run the setup hooks without starting an interactive session, use:
-
-```powershell
-claude --init-only
-```
-
-This is useful for CI/CD pipelines or automated setup scripts.
+> Note: After dependencies are installed, just run `claude`. LSP servers start automatically.
 
 ### Windows Restart and Environment Variables
 
@@ -645,7 +625,7 @@ This is useful for CI/CD pipelines or automated setup scripts.
 | pip (LSP servers) | No | Scripts update current session PATH |
 | go install (gopls, sqls) | No | Scripts update current session PATH |
 
-> In practice: If you're installing runtimes for the first time (Node.js, Python, Go, etc.), restart Windows once after `claude --init`. After that, no more restarts needed.
+> In practice: If you're installing runtimes for the first time (Node.js, Python, Go, etc.), restart Windows once after the initial setup run. After that, no more restarts needed.
 
 #### Environment variables set automatically
 
@@ -661,7 +641,7 @@ These are set automatically by the setup hooks — you don't need to configure t
 
 #### Quick fix if PATH isn't working
 
-If after running `claude --init` the LSP servers aren't found, refresh your PATH without restarting:
+If after running `claude` (right after first-time installs) the LSP servers aren't found, refresh your PATH without restarting:
 
 PowerShell:
 ```powershell
@@ -1185,11 +1165,11 @@ winget install zig.zls
 <details>
 <summary><strong>Do I need to run `--init` every time?</strong></summary>
 
-No. You only need `--init` once after installing new plugins. For daily use, just run `claude`. The LSP servers start automatically.
+No. Setup runs automatically on session start after installing/updating plugins. For daily use, just run `claude`. The LSP servers start automatically.
 
 | When | Command |
 |------|---------|
-| After installing new plugins | `claude --init` (once) |
+| After installing new plugins | `claude` (restart once) |
 | Daily use | `claude` |
 
 </details>
