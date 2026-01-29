@@ -1,13 +1,17 @@
 {
+  "description": "Check for graphql-lsp installation on init",
   "hooks": {
-    "graphql-lsp": {
-      "command": "powershell.exe",
-      "args": [
-        "-ExecutionPolicy",
-        "Bypass",
-        "-File",
-        "{{configDir}}\\graphql-lsp\\hooks\\check-graphql-lsp.ps1"
-      ]
-    }
+    "Setup": [
+      {
+        "matcher": "init",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/hooks/check-graphql-lsp.ps1\"",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
   }
 }

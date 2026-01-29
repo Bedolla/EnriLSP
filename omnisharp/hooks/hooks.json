@@ -1,13 +1,14 @@
 {
-  "description": "Check for OmniSharp installation on session start",
+  "description": "Check for OmniSharp installation on init",
   "hooks": {
-    "SessionStart": [
+    "Setup": [
       {
+        "matcher": "init",
         "hooks": [
           {
             "type": "command",
             "command": "powershell -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/hooks/check-omnisharp.ps1\"",
-            "timeout": 60
+            "timeout": 120
           }
         ]
       }

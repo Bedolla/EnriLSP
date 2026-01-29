@@ -61,10 +61,6 @@
       "source": "./jdtls"
     },
     {
-      "name": "json-language-server",
-      "source": "./json-language-server"
-    },
-    {
       "name": "kotlin-language-server",
       "source": "./kotlin-language-server"
     },
@@ -125,8 +121,8 @@
       "source": "./texlab"
     },
     {
-      "name": "vscode-html-css",
-      "source": "./vscode-html-css"
+      "name": "vscode-langservers",
+      "source": "./vscode-langservers"
     },
     {
       "name": "vtsls",

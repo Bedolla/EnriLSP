@@ -1,13 +1,17 @@
 {
+  "description": "Check for vue-language-server installation on init",
   "hooks": {
-    "postEnvironmentInstall": {
-      "command": "powershell.exe",
-      "args": [
-        "-ExecutionPolicy",
-        "Bypass",
-        "-File",
-        "hooks/check-vue-language-server.ps1"
-      ]
-    }
+    "Setup": [
+      {
+        "matcher": "init",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/hooks/check-vue-language-server.ps1\"",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
   }
 }

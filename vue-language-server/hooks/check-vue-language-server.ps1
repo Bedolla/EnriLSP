@@ -42,7 +42,8 @@ class EnvironmentManager {
   }
 
   [void] WriteError([string] $message) {
-    Write-Host "[$($this.PluginName)] $message" -ForegroundColor Red
+    # Write to stderr so Claude Code Setup hooks display the message to user
+    [Console]::Error.WriteLine("[$($this.PluginName)] $message")
   }
 
   [bool] AnyFileExists([string[]] $paths) {
@@ -65,15 +66,23 @@ class EnvironmentManager {
 
   [void] AddToUserPath([string] $binPath) {
     [string] $oldUserPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
-    if ($oldUserPath -notlike "*$binPath*") {
+    # Normalize path for comparison (remove trailing backslash)
+    [string] $normalizedBin = $binPath.TrimEnd('\')
+    [string[]] $existingPaths = $oldUserPath -split ';' | ForEach-Object { $_.TrimEnd('\') }
+
+    if ($normalizedBin -notin $existingPaths) {
       [System.Environment]::SetEnvironmentVariable("Path", "$oldUserPath;$binPath", "User")
       $this.WriteInfo("Added to user PATH: $binPath")
     }
   }
 
   [void] RefreshSessionPath() {
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + `
-      [System.Environment]::GetEnvironmentVariable("Path", "User")
+    # Combine Machine and User PATH, avoiding empty separators
+    [string] $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    [string] $userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+    $machinePath = $machinePath.TrimEnd(';')
+    $userPath = $userPath.TrimEnd(';')
+    $env:Path = "$machinePath;$userPath"
   }
 
   [bool] IsPackageManagerAvailable([string] $managerName) {
@@ -106,7 +115,11 @@ class PackageInstaller {
   [PackageManagerResult] InstallWithNpm([string] $packageName) {
     $this.EnvManager.WriteInfo("Installing via npm...")
     & npm install -g $packageName 2>&1 | Out-Null
-    return [PackageManagerResult]::new($true, "Installed via npm", "npm")
+
+    if ($LASTEXITCODE -eq 0) {
+      return [PackageManagerResult]::new($true, "Installed via npm", "npm")
+    }
+    return [PackageManagerResult]::new($false, "npm installation failed", "npm")
   }
 }
 
@@ -164,7 +177,7 @@ class VueLanguageServerInstaller {
     }
 
     $this.EnvManager.WriteError("Could not auto-install Node.js. Please install manually:")
-    $this.EnvManager.WriteInfo("  winget install OpenJS.NodeJS.LTS")
+    $this.EnvManager.WriteError("  winget install OpenJS.NodeJS.LTS")
     return $false
   }
 
@@ -184,7 +197,7 @@ class VueLanguageServerInstaller {
     }
 
     $this.EnvManager.WriteError("Failed to install. Please run manually:")
-    $this.EnvManager.WriteInfo("  npm install -g @vue/language-server")
+    $this.EnvManager.WriteError("  npm install -g @vue/language-server")
     return $false
   }
 
@@ -198,7 +211,8 @@ class VueLanguageServerInstaller {
     if (-not $this.IsRuntimeInstalled()) {
       [bool] $runtimeInstalled = $this.InstallRuntime()
       if (-not $runtimeInstalled) {
-        return 0
+        # Exit code 2: stderr shown to user for Setup hooks
+        return 2
       }
     }
 

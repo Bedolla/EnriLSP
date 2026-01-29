@@ -1,0 +1,10 @@
+{
+  "postgres-language-server": {
+    "command": "postgres-language-server",
+    "args": [],
+    "extensionToLanguage": {
+      ".sql": "sql",
+      ".pgsql": "sql"
+    }
+  }
+}

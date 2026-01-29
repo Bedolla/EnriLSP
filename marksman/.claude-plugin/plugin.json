@@ -1,8 +1,19 @@
 {
-  "description": "Markdown language server for Windows",
   "name": "marksman",
   "version": "1.0.0",
+  "description": "Markdown language server for Windows",
   "author": {
     "name": "Bedolla"
-  }
+  },
+  "homepage": "https://github.com/Bedolla/EnriLSP#marksman",
+  "repository": "https://github.com/Bedolla/EnriLSP",
+  "license": "MIT",
+  "keywords": [
+    "lsp",
+    "markdown",
+    "documentation",
+    "notes"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "lspServers": "./.lsp.json"
 }

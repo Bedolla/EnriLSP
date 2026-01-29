@@ -1,0 +1,9 @@
+{
+  "zls": {
+    "command": "zls",
+    "args": [],
+    "extensionToLanguage": {
+      ".zig": "zig"
+    }
+  }
+}

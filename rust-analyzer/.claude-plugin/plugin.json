@@ -1,8 +1,19 @@
 {
-  "description": "Rust language server for Windows",
   "name": "rust-analyzer",
   "version": "1.0.0",
+  "description": "Rust language server for Windows",
   "author": {
     "name": "Bedolla"
-  }
+  },
+  "homepage": "https://github.com/Bedolla/EnriLSP#rust-analyzer",
+  "repository": "https://github.com/Bedolla/EnriLSP",
+  "license": "MIT",
+  "keywords": [
+    "lsp",
+    "rust",
+    "systems",
+    "backend"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "lspServers": "./.lsp.json"
 }

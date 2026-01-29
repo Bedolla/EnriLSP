@@ -1,9 +1,9 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    EnriLSP - VSCode HTML CSS Language Server installer
+    EnriLSP - VSCode Language Servers (HTML/CSS/JSON/ESLint) installer
 .DESCRIPTION
-    Checks for vscode-html-css language server installation and auto-installs Node.js if missing.
+    Checks for vscode-langservers-extracted (HTML, CSS, JSON, ESLint) installation and auto-installs Node.js if missing.
     Uses OOP patterns with explicit types. Verifies by file path, not PATH env.
 .NOTES
     Author: Bedolla
@@ -46,7 +46,8 @@ class EnvironmentManager {
   }
 
   [void] WriteError([string] $message) {
-    Write-Host "[$($this.PluginName)] $message" -ForegroundColor Red
+    # Write to stderr so Claude Code Setup hooks display the message to user
+    [Console]::Error.WriteLine("[$($this.PluginName)] $message")
   }
 
   [bool] FileExists([string] $path) {
@@ -80,15 +81,23 @@ class EnvironmentManager {
 
   [void] AddToUserPath([string] $binPath) {
     [string] $oldUserPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
-    if ($oldUserPath -notlike "*$binPath*") {
+    # Normalize path for comparison (remove trailing backslash)
+    [string] $normalizedBin = $binPath.TrimEnd('\')
+    [string[]] $existingPaths = $oldUserPath -split ';' | ForEach-Object { $_.TrimEnd('\') }
+
+    if ($normalizedBin -notin $existingPaths) {
       [System.Environment]::SetEnvironmentVariable("Path", "$oldUserPath;$binPath", "User")
       $this.WriteInfo("Added to user PATH: $binPath")
     }
   }
 
   [void] RefreshSessionPath() {
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + `
-      [System.Environment]::GetEnvironmentVariable("Path", "User")
+    # Combine Machine and User PATH, avoiding empty separators
+    [string] $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    [string] $userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+    $machinePath = $machinePath.TrimEnd(';')
+    $userPath = $userPath.TrimEnd(';')
+    $env:Path = "$machinePath;$userPath"
   }
 
   [bool] IsPackageManagerAvailable([string] $managerName) {
@@ -126,16 +135,26 @@ class PackageInstaller {
     $this.EnvManager.WriteInfo("Installing via Chocolatey...")
     & choco install $packageName -y --limit-output 2>&1 | Out-Null
 
-    return [PackageManagerResult]::new($true, "Installed via Chocolatey", "choco")
+    if ($LASTEXITCODE -eq 0) {
+      return [PackageManagerResult]::new($true, "Installed via Chocolatey", "choco")
+    }
+    return [PackageManagerResult]::new($false, "Chocolatey installation failed", "choco")
   }
 
   [PackageManagerResult] InstallWithNpm([string[]] $packageNames) {
     $this.EnvManager.WriteInfo("Installing via npm...")
+    [bool] $allSuccess = $true
     foreach ($pkg in $packageNames) {
       & npm install -g $pkg 2>&1 | Out-Null
+      if ($LASTEXITCODE -ne 0) {
+        $allSuccess = $false
+      }
     }
 
-    return [PackageManagerResult]::new($true, "Installed via npm", "npm")
+    if ($allSuccess) {
+      return [PackageManagerResult]::new($true, "Installed via npm", "npm")
+    }
+    return [PackageManagerResult]::new($false, "npm installation failed", "npm")
   }
 }
 
@@ -144,10 +163,12 @@ class VscodeHtmlCssInstaller {
   hidden [PackageInstaller] $PkgInstaller
   hidden [string] $NpmGlobalPath = "$env:APPDATA\npm"
   hidden [string[]] $LspKnownPaths = @(
+    # Modern package: vscode-langservers-extracted (2024+)
+    "$env:APPDATA\npm\vscode-html-language-server.cmd",
+    "$env:APPDATA\npm\vscode-css-language-server.cmd",
+    # Legacy packages: vscode-*-languageserver-bin (deprecated, last updated 2019)
     "$env:APPDATA\npm\html-languageserver.cmd",
-    "$env:APPDATA\npm\css-languageserver.cmd",
-    "$env:APPDATA\npm\vscode-html-languageserver.cmd",
-    "$env:APPDATA\npm\vscode-css-languageserver.cmd"
+    "$env:APPDATA\npm\css-languageserver.cmd"
   )
   hidden [string[]] $RuntimeKnownPaths = @(
     "C:\Program Files\nodejs\npm.cmd",
@@ -157,7 +178,7 @@ class VscodeHtmlCssInstaller {
   hidden [string] $WingetPackageId = "OpenJS.NodeJS.LTS"
 
   VscodeHtmlCssInstaller() {
-    $this.EnvManager = [EnvironmentManager]::new("vscode-html-css")
+    $this.EnvManager = [EnvironmentManager]::new("vscode-langservers")
     $this.PkgInstaller = [PackageInstaller]::new($this.EnvManager)
   }
 
@@ -196,25 +217,23 @@ class VscodeHtmlCssInstaller {
     }
 
     $this.EnvManager.WriteError("Could not auto-install Node.js. Please install manually:")
-    $this.EnvManager.WriteInfo("  winget install OpenJS.NodeJS.LTS")
+    $this.EnvManager.WriteError("  winget install OpenJS.NodeJS.LTS")
     return $false
   }
 
   [bool] InstallLsp() {
     $this.EnvManager.WriteInfo("Installing HTML/CSS language servers...")
-    
+
     # Ensure npm global path exists
     if (-not (Test-Path $this.NpmGlobalPath)) {
       New-Item -ItemType Directory -Path $this.NpmGlobalPath -Force | Out-Null
     }
-    
+
     $this.AddLspToPath()
-    
-    [string[]] $packages = @(
-      "vscode-html-languageserver-bin",
-      "vscode-css-languageserver-bin"
-    )
-    
+
+    # Use modern unified package (maintained, uses vscode-languageserver v10+)
+    [string[]] $packages = @("vscode-langservers-extracted")
+
     [void] $this.PkgInstaller.InstallWithNpm($packages)
 
     if ($this.IsLspInstalled()) {
@@ -223,7 +242,7 @@ class VscodeHtmlCssInstaller {
     }
 
     $this.EnvManager.WriteError("Failed to install HTML/CSS language servers. Please run manually:")
-    $this.EnvManager.WriteInfo("  npm install -g vscode-html-languageserver-bin vscode-css-languageserver-bin")
+    $this.EnvManager.WriteError("  npm install -g vscode-langservers-extracted")
     return $false
   }
 
@@ -232,7 +251,7 @@ class VscodeHtmlCssInstaller {
     if ($this.IsLspInstalled()) {
       # Always ensure it's in PATH
       $this.AddLspToPath()
-      $this.EnvManager.WriteSuccess("vscode-html-css is already installed")
+      $this.EnvManager.WriteSuccess("vscode-langservers is already installed")
       return 0
     }
 
@@ -240,12 +259,17 @@ class VscodeHtmlCssInstaller {
     if (-not $this.IsRuntimeInstalled()) {
       [bool] $runtimeInstalled = $this.InstallRuntime()
       if (-not $runtimeInstalled) {
-        return 0
+        # Exit code 2: stderr shown to user for Setup hooks
+        return 2
       }
     }
 
     # Install LSP
-    $this.InstallLsp()
+    [bool] $lspInstalled = $this.InstallLsp()
+    if (-not $lspInstalled) {
+      # Exit code 2: stderr shown to user for Setup hooks
+      return 2
+    }
     return 0
   }
 }

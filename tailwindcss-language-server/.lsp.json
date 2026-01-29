@@ -1,0 +1,13 @@
+{
+  "tailwindcss-language-server": {
+    "command": "tailwindcss-language-server",
+    "args": ["--stdio"],
+    "extensionToLanguage": {
+      ".css": "css",
+      ".html": "html",
+      ".jsx": "javascriptreact",
+      ".tsx": "typescriptreact",
+      ".vue": "vue"
+    }
+  }
+}

@@ -1,8 +1,20 @@
 {
-  "description": "Angular language server for Windows",
   "name": "angular-language-server",
   "version": "1.0.0",
+  "description": "Angular language server for Windows",
   "author": {
     "name": "Bedolla"
-  }
+  },
+  "homepage": "https://github.com/Bedolla/EnriLSP#angular-language-server",
+  "repository": "https://github.com/Bedolla/EnriLSP",
+  "license": "MIT",
+  "keywords": [
+    "lsp",
+    "angular",
+    "typescript",
+    "frontend",
+    "framework"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "lspServers": "./.lsp.json"
 }

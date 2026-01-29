@@ -1,0 +1,10 @@
+{
+  "graphql-lsp": {
+    "command": "graphql-lsp",
+    "args": ["server", "-m", "stream"],
+    "extensionToLanguage": {
+      ".graphql": "graphql",
+      ".gql": "graphql"
+    }
+  }
+}

@@ -47,7 +47,8 @@ class EnvironmentManager {
   }
 
   [void] WriteError([string] $message) {
-    Write-Host "[$($this.PluginName)] $message" -ForegroundColor Red
+    # Write to stderr so Claude Code Setup hooks display the message to user
+    [Console]::Error.WriteLine("[$($this.PluginName)] $message")
   }
 
   [bool] FileExists([string] $path) {
@@ -90,15 +91,23 @@ class EnvironmentManager {
 
   [void] AddToUserPath([string] $binPath) {
     [string] $oldUserPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
-    if ($oldUserPath -notlike "*$binPath*") {
+    # Normalize path for comparison (remove trailing backslash)
+    [string] $normalizedBin = $binPath.TrimEnd('\')
+    [string[]] $existingPaths = $oldUserPath -split ';' | ForEach-Object { $_.TrimEnd('\') }
+
+    if ($normalizedBin -notin $existingPaths) {
       [System.Environment]::SetEnvironmentVariable("Path", "$oldUserPath;$binPath", "User")
       $this.WriteInfo("Added to user PATH: $binPath")
     }
   }
 
   [void] RefreshSessionPath() {
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + `
-      [System.Environment]::GetEnvironmentVariable("Path", "User")
+    # Combine Machine and User PATH, avoiding empty separators
+    [string] $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    [string] $userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+    $machinePath = $machinePath.TrimEnd(';')
+    $userPath = $userPath.TrimEnd(';')
+    $env:Path = "$machinePath;$userPath"
   }
 
   [bool] IsPackageManagerAvailable([string] $managerName) {
@@ -136,7 +145,10 @@ class PackageInstaller {
     $this.EnvManager.WriteInfo("Installing via Chocolatey...")
     & choco install $packageName -y --limit-output 2>&1 | Out-Null
 
-    return [PackageManagerResult]::new($true, "Installed via Chocolatey", "choco")
+    if ($LASTEXITCODE -eq 0) {
+      return [PackageManagerResult]::new($true, "Installed via Chocolatey", "choco")
+    }
+    return [PackageManagerResult]::new($false, "Chocolatey installation failed", "choco")
   }
 }
 
@@ -307,8 +319,8 @@ class KotlinLsInstaller {
     }
 
     $this.EnvManager.WriteError("Could not auto-install Java $($this.MinJavaVersion)+. Please install manually:")
-    $this.EnvManager.WriteInfo("  winget install Microsoft.OpenJDK.25")
-    $this.EnvManager.WriteInfo("  Or run: winget install EclipseAdoptium.Temurin.17.JDK")
+    $this.EnvManager.WriteError("  winget install Microsoft.OpenJDK.25")
+    $this.EnvManager.WriteError("  Or run: winget install EclipseAdoptium.Temurin.17.JDK")
     return $false
   }
 
@@ -325,7 +337,7 @@ class KotlinLsInstaller {
     }
 
     $this.EnvManager.WriteError("Failed to install kotlin-language-server. Please install manually:")
-    $this.EnvManager.WriteInfo("  Download from https://github.com/fwcd/kotlin-language-server/releases")
+    $this.EnvManager.WriteError("  Download from https://github.com/fwcd/kotlin-language-server/releases")
     return $false
   }
 
@@ -344,7 +356,7 @@ class KotlinLsInstaller {
       [string] $tempFile = "$env:TEMP\kotlin-ls.zip"
       
       $this.EnvManager.WriteInfo("Downloading kotlin-language-server from GitHub...")
-      Invoke-WebRequest -Uri $downloadUrl -OutFile $tempFile -UseBasicParsing
+      Invoke-WebRequest -Uri $downloadUrl -OutFile $tempFile -UseBasicParsing -TimeoutSec 120
       
       # Extract (creates server/ subfolder)
       $this.EnvManager.WriteInfo("Extracting kotlin-language-server...")
@@ -370,7 +382,8 @@ class KotlinLsInstaller {
     if (-not $this.IsRuntimeInstalled() -or -not $this.IsRuntimeVersionValid()) {
       [bool] $runtimeInstalled = $this.InstallRuntime()
       if (-not $runtimeInstalled) {
-        return 0
+        # Exit code 2: stderr shown to user for Setup hooks
+        return 2
       }
     }
     else {
@@ -387,7 +400,11 @@ class KotlinLsInstaller {
     }
 
     # Install LSP
-    $this.InstallLsp()
+    [bool] $lspInstalled = $this.InstallLsp()
+    if (-not $lspInstalled) {
+      # Exit code 2: stderr shown to user for Setup hooks
+      return 2
+    }
     return 0
   }
 }

@@ -1,8 +1,19 @@
 {
-  "description": "Python language server for Windows",
   "name": "pyright",
   "version": "1.0.0",
+  "description": "Python language server for Windows",
   "author": {
     "name": "Bedolla"
-  }
+  },
+  "homepage": "https://github.com/Bedolla/EnriLSP#pyright",
+  "repository": "https://github.com/Bedolla/EnriLSP",
+  "license": "MIT",
+  "keywords": [
+    "lsp",
+    "python",
+    "type-checking",
+    "backend"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "lspServers": "./.lsp.json"
 }

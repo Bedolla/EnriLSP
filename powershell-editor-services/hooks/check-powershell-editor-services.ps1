@@ -42,7 +42,8 @@ class EnvironmentManager {
   }
 
   [void] WriteError([string] $message) {
-    Write-Host "[$($this.PluginName)] $message" -ForegroundColor Red
+    # Write to stderr so Claude Code Setup hooks display the message to user
+    [Console]::Error.WriteLine("[$($this.PluginName)] $message")
   }
 
   [bool] CommandExists([string] $command) {
@@ -51,15 +52,23 @@ class EnvironmentManager {
 
   [void] AddToUserPath([string] $binPath) {
     [string] $oldUserPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
-    if ($oldUserPath -notlike "*$binPath*") {
+    # Normalize path for comparison (remove trailing backslash)
+    [string] $normalizedBin = $binPath.TrimEnd('\')
+    [string[]] $existingPaths = $oldUserPath -split ';' | ForEach-Object { $_.TrimEnd('\') }
+
+    if ($normalizedBin -notin $existingPaths) {
       [System.Environment]::SetEnvironmentVariable("Path", "$oldUserPath;$binPath", "User")
       $this.WriteInfo("Added to user PATH: $binPath")
     }
   }
 
   [void] RefreshSessionPath() {
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + `
-      [System.Environment]::GetEnvironmentVariable("Path", "User")
+    # Combine Machine and User PATH, avoiding empty separators
+    [string] $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    [string] $userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+    $machinePath = $machinePath.TrimEnd(';')
+    $userPath = $userPath.TrimEnd(';')
+    $env:Path = "$machinePath;$userPath"
   }
 }
 
@@ -79,7 +88,7 @@ class PowerShellLspInstaller {
 
   [string] GetLatestReleaseUrl() {
     try {
-      $response = Invoke-RestMethod "https://api.github.com/repos/PowerShell/PowerShellEditorServices/releases/latest" -ErrorAction Stop
+      $response = Invoke-RestMethod "https://api.github.com/repos/PowerShell/PowerShellEditorServices/releases/latest" -TimeoutSec 30 -ErrorAction Stop
       $asset = $response.assets | Where-Object { $_.name -eq "PowerShellEditorServices.zip" } | Select-Object -First 1
       if ($asset) {
         return $asset.browser_download_url
@@ -107,7 +116,7 @@ class PowerShellLspInstaller {
       # Download the release
       $this.EnvManager.WriteInfo("Downloading from: $downloadUrl")
       [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-      Invoke-WebRequest -Uri $downloadUrl -OutFile $tempFile -UseBasicParsing -ErrorAction Stop
+      Invoke-WebRequest -Uri $downloadUrl -OutFile $tempFile -UseBasicParsing -TimeoutSec 120 -ErrorAction Stop
 
       # Create install directory
       if (-not (Test-Path $this.InstallDir)) {
@@ -132,11 +141,11 @@ class PowerShellLspInstaller {
     return $false
   }
 
-  [void] Run() {
+  [int] Run() {
     if ($this.IsInstalled()) {
       $this.EnvManager.WriteSuccess("PowerShell Editor Services is ready")
       $this.EnvManager.WriteInfo("Start script: $($this.StartScript)")
-      return
+      return 0
     }
 
     $this.EnvManager.WriteInfo("PowerShell Editor Services not found. Installing...")
@@ -144,13 +153,18 @@ class PowerShellLspInstaller {
       if ($this.IsInstalled()) {
         $this.EnvManager.WriteSuccess("Installation complete!")
         $this.EnvManager.WriteInfo("Start script: $($this.StartScript)")
+        return 0
       }
       else {
         $this.EnvManager.WriteError("Installation completed but Start-EditorServices.ps1 not found")
+        # Exit code 2: stderr shown to user for Setup hooks
+        return 2
       }
     }
     else {
       $this.EnvManager.WriteError("Installation failed")
+      # Exit code 2: stderr shown to user for Setup hooks
+      return 2
     }
   }
 }
@@ -159,5 +173,5 @@ class PowerShellLspInstaller {
 # MAIN ENTRY POINT
 # ============================================================================
 
-$installer = [PowerShellLspInstaller]::new()
-$installer.Run()
+[PowerShellLspInstaller] $installer = [PowerShellLspInstaller]::new()
+exit $installer.Run()

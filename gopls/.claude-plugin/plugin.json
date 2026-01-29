@@ -1,8 +1,19 @@
 {
-  "description": "Go language server for Windows",
   "name": "gopls",
   "version": "1.0.0",
+  "description": "Go language server for Windows",
   "author": {
     "name": "Bedolla"
-  }
+  },
+  "homepage": "https://github.com/Bedolla/EnriLSP#gopls",
+  "repository": "https://github.com/Bedolla/EnriLSP",
+  "license": "MIT",
+  "keywords": [
+    "lsp",
+    "go",
+    "golang",
+    "backend"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "lspServers": "./.lsp.json"
 }

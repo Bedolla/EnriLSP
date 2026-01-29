@@ -1,8 +1,19 @@
 {
-  "description": "PowerShell language server for Windows",
   "name": "powershell-editor-services",
   "version": "1.0.0",
+  "description": "PowerShell language server for Windows",
   "author": {
     "name": "Bedolla"
-  }
+  },
+  "homepage": "https://github.com/Bedolla/EnriLSP#powershell-editor-services",
+  "repository": "https://github.com/Bedolla/EnriLSP",
+  "license": "MIT",
+  "keywords": [
+    "lsp",
+    "powershell",
+    "windows",
+    "scripting"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "lspServers": "./.lsp.json"
 }

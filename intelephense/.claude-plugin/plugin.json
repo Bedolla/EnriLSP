@@ -1,8 +1,19 @@
 {
-  "description": "PHP language server for Windows",
   "name": "intelephense",
   "version": "1.0.0",
+  "description": "PHP language server for Windows",
   "author": {
     "name": "Bedolla"
-  }
+  },
+  "homepage": "https://github.com/Bedolla/EnriLSP#intelephense",
+  "repository": "https://github.com/Bedolla/EnriLSP",
+  "license": "MIT",
+  "keywords": [
+    "lsp",
+    "php",
+    "backend",
+    "web"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "lspServers": "./.lsp.json"
 }

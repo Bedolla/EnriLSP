@@ -1,8 +1,19 @@
 {
-  "description": "SQL language server for Windows",
   "name": "sqls",
   "version": "1.0.0",
+  "description": "SQL language server for Windows",
   "author": {
     "name": "Bedolla"
-  }
+  },
+  "homepage": "https://github.com/Bedolla/EnriLSP#sqls",
+  "repository": "https://github.com/Bedolla/EnriLSP",
+  "license": "MIT",
+  "keywords": [
+    "lsp",
+    "sql",
+    "database",
+    "query"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "lspServers": "./.lsp.json"
 }

@@ -1,0 +1,11 @@
+{
+  "ember-language-server": {
+    "command": "ember-language-server",
+    "args": ["--stdio"],
+    "extensionToLanguage": {
+      ".hbs": "handlebars",
+      ".js": "javascript",
+      ".ts": "typescript"
+    }
+  }
+}

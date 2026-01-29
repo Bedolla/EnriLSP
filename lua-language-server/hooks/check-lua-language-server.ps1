@@ -46,7 +46,8 @@ class EnvironmentManager {
   }
 
   [void] WriteError([string] $message) {
-    Write-Host "[$($this.PluginName)] $message" -ForegroundColor Red
+    # Write to stderr so Claude Code Setup hooks display the message to user
+    [Console]::Error.WriteLine("[$($this.PluginName)] $message")
   }
 
   [bool] FileExists([string] $path) {
@@ -79,15 +80,23 @@ class EnvironmentManager {
 
   [void] AddToUserPath([string] $binPath) {
     [string] $oldUserPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
-    if ($oldUserPath -notlike "*$binPath*") {
+    # Normalize path for comparison (remove trailing backslash)
+    [string] $normalizedBin = $binPath.TrimEnd('\')
+    [string[]] $existingPaths = $oldUserPath -split ';' | ForEach-Object { $_.TrimEnd('\') }
+
+    if ($normalizedBin -notin $existingPaths) {
       [System.Environment]::SetEnvironmentVariable("Path", "$oldUserPath;$binPath", "User")
       $this.WriteInfo("Added to user PATH: $binPath")
     }
   }
 
   [void] RefreshSessionPath() {
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + `
-      [System.Environment]::GetEnvironmentVariable("Path", "User")
+    # Combine Machine and User PATH, avoiding empty separators
+    [string] $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    [string] $userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+    $machinePath = $machinePath.TrimEnd(';')
+    $userPath = $userPath.TrimEnd(';')
+    $env:Path = "$machinePath;$userPath"
   }
 
   [bool] IsPackageManagerAvailable([string] $managerName) {
@@ -122,7 +131,7 @@ class LuaLanguageServerInstaller {
     try {
       $this.EnvManager.WriteInfo("Fetching latest release from GitHub...")
       $headers = @{ "User-Agent" = "EnriLSP" }
-      $release = Invoke-RestMethod -Uri $this.GitHubReleaseApi -Headers $headers -ErrorAction Stop
+      $release = Invoke-RestMethod -Uri $this.GitHubReleaseApi -Headers $headers -TimeoutSec 30 -ErrorAction Stop
       
       foreach ($asset in $release.assets) {
         if ($asset.name -match "lua-language-server.*win32-x64\.zip$") {
@@ -154,7 +163,7 @@ class LuaLanguageServerInstaller {
       # Download
       [string] $zipPath = "$env:TEMP\lua-language-server.zip"
       $this.EnvManager.WriteInfo("Downloading lua-language-server...")
-      Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -UseBasicParsing
+      Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 120
 
       # Extract
       $this.EnvManager.WriteInfo("Extracting...")
@@ -183,7 +192,11 @@ class LuaLanguageServerInstaller {
       return 0
     }
 
-    $this.InstallLsp()
+    [bool] $lspInstalled = $this.InstallLsp()
+    if (-not $lspInstalled) {
+      # Exit code 2: stderr shown to user for Setup hooks
+      return 2
+    }
     return 0
   }
 }

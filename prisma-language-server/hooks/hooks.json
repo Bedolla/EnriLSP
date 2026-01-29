@@ -1,13 +1,17 @@
 {
+  "description": "Check for prisma-language-server installation on init",
   "hooks": {
-    "prisma-language-server": {
-      "command": "powershell.exe",
-      "args": [
-        "-ExecutionPolicy",
-        "Bypass",
-        "-File",
-        "{{configDir}}\\prisma-language-server\\hooks\\check-prisma-language-server.ps1"
-      ]
-    }
+    "Setup": [
+      {
+        "matcher": "init",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/hooks/check-prisma-language-server.ps1\"",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
   }
 }

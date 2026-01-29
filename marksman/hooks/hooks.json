@@ -1,13 +1,17 @@
 {
+  "description": "Check for marksman installation on init",
   "hooks": {
-    "marksman": {
-      "command": "powershell.exe",
-      "args": [
-        "-ExecutionPolicy",
-        "Bypass",
-        "-File",
-        "{{configDir}}\\marksman\\hooks\\check-marksman.ps1"
-      ]
-    }
+    "Setup": [
+      {
+        "matcher": "init",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/hooks/check-marksman.ps1\"",
+            "timeout": 300
+          }
+        ]
+      }
+    ]
   }
 }

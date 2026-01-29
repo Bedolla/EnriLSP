@@ -1,0 +1,11 @@
+{
+  "cssmodules-language-server": {
+    "command": "cssmodules-language-server",
+    "args": [],
+    "extensionToLanguage": {
+      ".module.css": "css",
+      ".module.scss": "scss",
+      ".module.less": "less"
+    }
+  }
+}

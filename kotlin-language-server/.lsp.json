@@ -1,6 +1,7 @@
 {
-  "kotlin": {
+  "kotlin-language-server": {
     "command": "kotlin-language-server",
+    "args": [],
     "extensionToLanguage": {
       ".kt": "kotlin",
       ".kts": "kotlin"

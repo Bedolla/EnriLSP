@@ -1,8 +1,16 @@
 {
+  "description": "Check for powershell-editor-services installation on init",
   "hooks": {
-    "postinstall": [
+    "Setup": [
       {
-        "command": "powershell -ExecutionPolicy Bypass -File \"{{PLUGIN_HOOKS_DIR}}/check-powershell-editor-services.ps1\""
+        "matcher": "init",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/hooks/check-powershell-editor-services.ps1\"",
+            "timeout": 120
+          }
+        ]
       }
     ]
   }

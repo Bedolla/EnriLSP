@@ -1,9 +1,0 @@
-{
-  "hooks": {
-    "postinstall": [
-      {
-        "command": "powershell -ExecutionPolicy Bypass -File \"{{PLUGIN_HOOKS_DIR}}/check-json-language-server.ps1\""
-      }
-    ]
-  }
-}

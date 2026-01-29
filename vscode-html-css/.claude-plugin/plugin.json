@@ -1,8 +1,0 @@
-{
-  "description": "HTML/CSS language server for Windows",
-  "name": "vscode-html-css",
-  "version": "1.0.0",
-  "author": {
-    "name": "Bedolla"
-  }
-}

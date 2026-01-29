@@ -1,8 +1,20 @@
 {
-  "description": "C/C++ language server for Windows",
   "name": "clangd",
   "version": "1.0.0",
+  "description": "C/C++ language server for Windows",
   "author": {
     "name": "Bedolla"
-  }
+  },
+  "homepage": "https://github.com/Bedolla/EnriLSP#clangd",
+  "repository": "https://github.com/Bedolla/EnriLSP",
+  "license": "MIT",
+  "keywords": [
+    "lsp",
+    "c",
+    "cpp",
+    "clang",
+    "systems"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "lspServers": "./.lsp.json"
 }

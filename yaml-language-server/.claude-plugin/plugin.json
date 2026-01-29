@@ -1,8 +1,19 @@
 {
-  "description": "YAML language server for Windows",
   "name": "yaml-language-server",
   "version": "1.0.0",
+  "description": "YAML language server for Windows",
   "author": {
     "name": "Bedolla"
-  }
+  },
+  "homepage": "https://github.com/Bedolla/EnriLSP#yaml-language-server",
+  "repository": "https://github.com/Bedolla/EnriLSP",
+  "license": "MIT",
+  "keywords": [
+    "lsp",
+    "yaml",
+    "configuration",
+    "devops"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "lspServers": "./.lsp.json"
 }

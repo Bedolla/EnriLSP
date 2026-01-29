@@ -1,13 +1,14 @@
 {
-  "description": "Check for Dart SDK installation on session start",
+  "description": "Check for Dart SDK installation on init",
   "hooks": {
-    "SessionStart": [
+    "Setup": [
       {
+        "matcher": "init",
         "hooks": [
           {
             "type": "command",
-            "command": "powershell -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/hooks/check-dart.ps1\"",
-            "timeout": 60
+            "command": "powershell -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/hooks/check-dart-analyzer.ps1\"",
+            "timeout": 120
           }
         ]
       }

@@ -46,7 +46,8 @@ class EnvironmentManager {
   }
 
   [void] WriteError([string] $message) {
-    Write-Host "[$($this.PluginName)] $message" -ForegroundColor Red
+    # Write to stderr so Claude Code Setup hooks display the message to user
+    [Console]::Error.WriteLine("[$($this.PluginName)] $message")
   }
 
   [bool] FileExists([string] $path) {
@@ -80,15 +81,23 @@ class EnvironmentManager {
 
   [void] AddToUserPath([string] $binPath) {
     [string] $oldUserPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
-    if ($oldUserPath -notlike "*$binPath*") {
+    # Normalize path for comparison (remove trailing backslash)
+    [string] $normalizedBin = $binPath.TrimEnd('\')
+    [string[]] $existingPaths = $oldUserPath -split ';' | ForEach-Object { $_.TrimEnd('\') }
+
+    if ($normalizedBin -notin $existingPaths) {
       [System.Environment]::SetEnvironmentVariable("Path", "$oldUserPath;$binPath", "User")
       $this.WriteInfo("Added to user PATH: $binPath")
     }
   }
 
   [void] RefreshSessionPath() {
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + `
-      [System.Environment]::GetEnvironmentVariable("Path", "User")
+    # Combine Machine and User PATH, avoiding empty separators
+    [string] $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    [string] $userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+    $machinePath = $machinePath.TrimEnd(';')
+    $userPath = $userPath.TrimEnd(';')
+    $env:Path = "$machinePath;$userPath"
   }
 
   [bool] IsPackageManagerAvailable([string] $managerName) {
@@ -126,14 +135,20 @@ class PackageInstaller {
     $this.EnvManager.WriteInfo("Installing via Chocolatey...")
     & choco install $packageName -y --limit-output 2>&1 | Out-Null
 
-    return [PackageManagerResult]::new($true, "Installed via Chocolatey", "choco")
+    if ($LASTEXITCODE -eq 0) {
+      return [PackageManagerResult]::new($true, "Installed via Chocolatey", "choco")
+    }
+    return [PackageManagerResult]::new($false, "Chocolatey installation failed", "choco")
   }
 
   [PackageManagerResult] InstallWithRustup([string] $component) {
     $this.EnvManager.WriteInfo("Installing via rustup...")
     & rustup component add $component 2>&1 | Out-Null
 
-    return [PackageManagerResult]::new($true, "Installed via rustup", "rustup")
+    if ($LASTEXITCODE -eq 0) {
+      return [PackageManagerResult]::new($true, "Installed via rustup", "rustup")
+    }
+    return [PackageManagerResult]::new($false, "rustup installation failed", "rustup")
   }
 }
 
@@ -224,7 +239,7 @@ class RustAnalyzerInstaller {
     }
 
     $this.EnvManager.WriteError("Could not auto-install Rust. Please install manually:")
-    $this.EnvManager.WriteInfo("  winget install Rustlang.Rustup")
+    $this.EnvManager.WriteError("  winget install Rustlang.Rustup")
     return $false
   }
 
@@ -242,7 +257,7 @@ class RustAnalyzerInstaller {
     }
 
     $this.EnvManager.WriteError("Failed to install rust-analyzer. Please run manually:")
-    $this.EnvManager.WriteInfo("  rustup component add rust-analyzer")
+    $this.EnvManager.WriteError("  rustup component add rust-analyzer")
     return $false
   }
 
@@ -259,12 +274,17 @@ class RustAnalyzerInstaller {
     if (-not $this.IsRuntimeInstalled()) {
       [bool] $runtimeInstalled = $this.InstallRuntime()
       if (-not $runtimeInstalled) {
-        return 0
+        # Exit code 2: stderr shown to user for Setup hooks
+        return 2
       }
     }
 
     # Install LSP
-    $this.InstallLsp()
+    [bool] $lspInstalled = $this.InstallLsp()
+    if (-not $lspInstalled) {
+      # Exit code 2: stderr shown to user for Setup hooks
+      return 2
+    }
     return 0
   }
 }

@@ -1,8 +1,19 @@
 {
-  "description": "CSS Modules language server for Windows",
   "name": "cssmodules-language-server",
   "version": "1.0.0",
+  "description": "CSS Modules language server for Windows",
   "author": {
     "name": "Bedolla"
-  }
+  },
+  "homepage": "https://github.com/Bedolla/EnriLSP#cssmodules-language-server",
+  "repository": "https://github.com/Bedolla/EnriLSP",
+  "license": "MIT",
+  "keywords": [
+    "lsp",
+    "css",
+    "css-modules",
+    "frontend"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "lspServers": "./.lsp.json"
 }

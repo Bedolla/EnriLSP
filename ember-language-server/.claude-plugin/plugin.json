@@ -1,8 +1,19 @@
 {
-  "description": "Ember.js language server for Windows",
   "name": "ember-language-server",
   "version": "1.0.0",
+  "description": "Ember.js language server for Windows",
   "author": {
     "name": "Bedolla"
-  }
+  },
+  "homepage": "https://github.com/Bedolla/EnriLSP#ember-language-server",
+  "repository": "https://github.com/Bedolla/EnriLSP",
+  "license": "MIT",
+  "keywords": [
+    "lsp",
+    "ember",
+    "javascript",
+    "frontend"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "lspServers": "./.lsp.json"
 }

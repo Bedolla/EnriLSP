@@ -1,8 +1,19 @@
 {
-  "description": "Ruby language server for Windows",
   "name": "solargraph",
   "version": "1.0.0",
+  "description": "Ruby language server for Windows",
   "author": {
     "name": "Bedolla"
-  }
+  },
+  "homepage": "https://github.com/Bedolla/EnriLSP#solargraph",
+  "repository": "https://github.com/Bedolla/EnriLSP",
+  "license": "MIT",
+  "keywords": [
+    "lsp",
+    "ruby",
+    "rails",
+    "backend"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "lspServers": "./.lsp.json"
 }

@@ -1,8 +1,19 @@
 {
-  "description": "TypeScript/JavaScript language server for Windows",
   "name": "vtsls",
   "version": "1.0.0",
+  "description": "TypeScript/JavaScript language server for Windows",
   "author": {
     "name": "Bedolla"
-  }
+  },
+  "homepage": "https://github.com/Bedolla/EnriLSP#vtsls",
+  "repository": "https://github.com/Bedolla/EnriLSP",
+  "license": "MIT",
+  "keywords": [
+    "lsp",
+    "typescript",
+    "javascript",
+    "frontend"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "lspServers": "./.lsp.json"
 }

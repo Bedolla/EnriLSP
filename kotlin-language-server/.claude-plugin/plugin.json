@@ -1,8 +1,19 @@
 {
-  "description": "Kotlin language server for Windows",
   "name": "kotlin-language-server",
   "version": "1.0.0",
+  "description": "Kotlin language server for Windows",
   "author": {
     "name": "Bedolla"
-  }
+  },
+  "homepage": "https://github.com/Bedolla/EnriLSP#kotlin-language-server",
+  "repository": "https://github.com/Bedolla/EnriLSP",
+  "license": "MIT",
+  "keywords": [
+    "lsp",
+    "kotlin",
+    "jvm",
+    "android"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "lspServers": "./.lsp.json"
 }

@@ -1,8 +1,19 @@
 {
-  "description": "Lua language server for Windows",
   "name": "lua-language-server",
   "version": "1.0.0",
+  "description": "Lua language server for Windows",
   "author": {
     "name": "Bedolla"
-  }
+  },
+  "homepage": "https://github.com/Bedolla/EnriLSP#lua-language-server",
+  "repository": "https://github.com/Bedolla/EnriLSP",
+  "license": "MIT",
+  "keywords": [
+    "lsp",
+    "lua",
+    "scripting",
+    "games"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "lspServers": "./.lsp.json"
 }

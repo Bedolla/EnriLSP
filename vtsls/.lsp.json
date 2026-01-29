@@ -1,9 +1,7 @@
 {
-  "typescript": {
+  "vtsls": {
     "command": "vtsls",
-    "args": [
-      "--stdio"
-    ],
+    "args": ["--stdio"],
     "extensionToLanguage": {
       ".ts": "typescript",
       ".tsx": "typescriptreact",

@@ -1,19 +1,15 @@
 {
-  "cpp": {
+  "clangd": {
     "command": "clangd",
+    "args": ["--background-index"],
     "extensionToLanguage": {
       ".c": "c",
       ".h": "c",
       ".cpp": "cpp",
-      ".hpp": "cpp",
       ".cc": "cpp",
       ".cxx": "cpp",
+      ".hpp": "cpp",
       ".hxx": "cpp"
-    },
-    "loggingConfig": {
-      "args": [
-        "--log=verbose"
-      ]
     }
   }
 }

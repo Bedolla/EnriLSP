@@ -47,7 +47,8 @@ class EnvironmentManager {
   }
 
   [void] WriteError([string] $message) {
-    Write-Host "[$($this.PluginName)] $message" -ForegroundColor Red
+    # Write to stderr so Claude Code Setup hooks display the message to user
+    [Console]::Error.WriteLine("[$($this.PluginName)] $message")
   }
 
   [bool] FileExists([string] $path) {
@@ -90,15 +91,23 @@ class EnvironmentManager {
 
   [void] AddToUserPath([string] $binPath) {
     [string] $oldUserPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
-    if ($oldUserPath -notlike "*$binPath*") {
+    # Normalize path for comparison (remove trailing backslash)
+    [string] $normalizedBin = $binPath.TrimEnd('\')
+    [string[]] $existingPaths = $oldUserPath -split ';' | ForEach-Object { $_.TrimEnd('\') }
+
+    if ($normalizedBin -notin $existingPaths) {
       [System.Environment]::SetEnvironmentVariable("Path", "$oldUserPath;$binPath", "User")
       $this.WriteInfo("Added to user PATH: $binPath")
     }
   }
 
   [void] RefreshSessionPath() {
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + `
-      [System.Environment]::GetEnvironmentVariable("Path", "User")
+    # Combine Machine and User PATH, avoiding empty separators
+    [string] $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    [string] $userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+    $machinePath = $machinePath.TrimEnd(';')
+    $userPath = $userPath.TrimEnd(';')
+    $env:Path = "$machinePath;$userPath"
   }
 
   [bool] IsPackageManagerAvailable([string] $managerName) {
@@ -136,7 +145,10 @@ class PackageInstaller {
     $this.EnvManager.WriteInfo("Installing via Chocolatey...")
     & choco install $packageName -y --limit-output 2>&1 | Out-Null
 
-    return [PackageManagerResult]::new($true, "Installed via Chocolatey", "choco")
+    if ($LASTEXITCODE -eq 0) {
+      return [PackageManagerResult]::new($true, "Installed via Chocolatey", "choco")
+    }
+    return [PackageManagerResult]::new($false, "Chocolatey installation failed", "choco")
   }
 }
 
@@ -312,8 +324,8 @@ class JdtlsInstaller {
     }
 
     $this.EnvManager.WriteError("Could not auto-install Java 21+. Please install manually:")
-    $this.EnvManager.WriteInfo("  winget install Microsoft.OpenJDK.25")
-    $this.EnvManager.WriteInfo("  Or run: winget install EclipseAdoptium.Temurin.21.JDK")
+    $this.EnvManager.WriteError("  winget install Microsoft.OpenJDK.25")
+    $this.EnvManager.WriteError("  Or run: winget install EclipseAdoptium.Temurin.21.JDK")
     return $false
   }
 
@@ -330,7 +342,7 @@ class JdtlsInstaller {
     }
 
     $this.EnvManager.WriteError("Failed to install jdtls. Please install manually:")
-    $this.EnvManager.WriteInfo("  Download from https://download.eclipse.org/jdtls/milestones/")
+    $this.EnvManager.WriteError("  Download from https://download.eclipse.org/jdtls/milestones/")
     return $false
   }
 
@@ -338,31 +350,61 @@ class JdtlsInstaller {
     try {
       [string] $jdtlsDir = "$env:LOCALAPPDATA\jdtls"
       [string] $jdtlsBin = "$jdtlsDir\bin"
-      
+
       # Create directory
       if (-not (Test-Path $jdtlsDir)) {
         New-Item -ItemType Directory -Path $jdtlsDir -Force | Out-Null
       }
-      
-      # Download latest milestone (1.54.0 as of Jan 2026)
-      # Use Eclipse mirror redirect for automatic mirror selection
-      [string] $downloadUrl = "https://www.eclipse.org/downloads/download.php?file=/jdtls/milestones/1.54.0/jdt-language-server-1.54.0-202511261751.tar.gz&r=1"
+
+      # Fetch the latest version from Eclipse milestones directory
+      $this.EnvManager.WriteInfo("Fetching latest jdtls version from Eclipse...")
+      [string] $milestonesPage = "https://download.eclipse.org/jdtls/milestones/"
+      [string] $pageContent = (Invoke-WebRequest -Uri $milestonesPage -UseBasicParsing -TimeoutSec 30).Content
+
+      # Extract version numbers (format: 1.XX.X) and find the latest
+      [regex] $versionPattern = '(1\.\d+\.\d+)'
+      $versionMatches = $versionPattern.Matches($pageContent)
+      [string[]] $versions = $versionMatches | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique { [version]$_ } -Descending
+      [string] $latestVersion = $versions[0]
+
+      if ([string]::IsNullOrEmpty($latestVersion)) {
+        $this.EnvManager.WriteWarning("Could not detect latest version, using fallback 1.55.0")
+        $latestVersion = "1.55.0"
+      }
+
+      $this.EnvManager.WriteInfo("Latest jdtls version: $latestVersion")
+
+      # List the version folder to find the exact tar.gz filename
+      [string] $versionFolder = "https://download.eclipse.org/jdtls/milestones/$latestVersion/"
+      [string] $folderContent = (Invoke-WebRequest -Uri $versionFolder -UseBasicParsing -TimeoutSec 30).Content
+
+      # Extract tar.gz filename (format: jdt-language-server-X.XX.X-YYYYMMDDHHSS.tar.gz)
+      [regex] $tarPattern = '(jdt-language-server-[\d\.]+-\d+\.tar\.gz)'
+      $tarMatch = $tarPattern.Match($folderContent)
+
+      if (-not $tarMatch.Success) {
+        $this.EnvManager.WriteError("Could not find tar.gz file in version folder")
+        return $false
+      }
+
+      [string] $tarFilename = $tarMatch.Groups[1].Value
+      [string] $downloadUrl = "https://www.eclipse.org/downloads/download.php?file=/jdtls/milestones/$latestVersion/$tarFilename&r=1"
       [string] $tempFile = "$env:TEMP\jdtls.tar.gz"
-      
-      $this.EnvManager.WriteInfo("Downloading jdtls from Eclipse...")
-      Invoke-WebRequest -Uri $downloadUrl -OutFile $tempFile -UseBasicParsing
-      
+
+      $this.EnvManager.WriteInfo("Downloading jdtls $latestVersion from Eclipse...")
+      Invoke-WebRequest -Uri $downloadUrl -OutFile $tempFile -UseBasicParsing -TimeoutSec 180
+
       # Extract using tar (available in Windows 10+)
       $this.EnvManager.WriteInfo("Extracting jdtls...")
       & tar -xzf $tempFile -C $jdtlsDir 2>&1 | Out-Null
-      
+
       # Clean up
       Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
-      
+
       # Add to PATH
       $this.EnvManager.AddToUserPath($jdtlsBin)
       $this.EnvManager.RefreshSessionPath()
-      
+
       # Update known paths to include this location
       return (Test-Path "$jdtlsBin\jdtls.bat") -or (Test-Path "$jdtlsDir\bin\jdtls")
     }
@@ -377,7 +419,8 @@ class JdtlsInstaller {
     if (-not $this.IsRuntimeInstalled() -or -not $this.IsRuntimeVersionValid()) {
       [bool] $runtimeInstalled = $this.InstallRuntime()
       if (-not $runtimeInstalled) {
-        return 0
+        # Exit code 2: stderr shown to user for Setup hooks
+        return 2
       }
     }
     else {
@@ -394,7 +437,11 @@ class JdtlsInstaller {
     }
 
     # Install LSP
-    $this.InstallLsp()
+    [bool] $lspInstalled = $this.InstallLsp()
+    if (-not $lspInstalled) {
+      # Exit code 2: stderr shown to user for Setup hooks
+      return 2
+    }
     return 0
   }
 }

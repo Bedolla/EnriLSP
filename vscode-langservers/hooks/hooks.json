@@ -1,0 +1,17 @@
+{
+  "description": "Check for vscode-langservers-extracted (HTML/CSS/JSON/ESLint) installation on init",
+  "hooks": {
+    "Setup": [
+      {
+        "matcher": "init",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/hooks/check-vscode-langservers.ps1\"",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}

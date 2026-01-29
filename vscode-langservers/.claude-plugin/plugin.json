@@ -1,0 +1,20 @@
+{
+  "name": "vscode-langservers",
+  "version": "1.0.0",
+  "description": "HTML/CSS language server for Windows",
+  "author": {
+    "name": "Bedolla"
+  },
+  "homepage": "https://github.com/Bedolla/EnriLSP#vscode-langservers",
+  "repository": "https://github.com/Bedolla/EnriLSP",
+  "license": "MIT",
+  "keywords": [
+    "lsp",
+    "html",
+    "css",
+    "json",
+    "frontend"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "lspServers": "./.lsp.json"
+}

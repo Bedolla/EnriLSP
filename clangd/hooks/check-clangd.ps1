@@ -46,7 +46,8 @@ class EnvironmentManager {
   }
 
   [void] WriteError([string] $message) {
-    Write-Host "[$($this.PluginName)] $message" -ForegroundColor Red
+    # Write to stderr so Claude Code Setup hooks display the message to user
+    [Console]::Error.WriteLine("[$($this.PluginName)] $message")
   }
 
   [bool] FileExists([string] $path) {
@@ -55,7 +56,14 @@ class EnvironmentManager {
 
   [bool] AnyFileExists([string[]] $paths) {
     foreach ($path in $paths) {
-      if (Test-Path $path -PathType Leaf) {
+      # If path contains wildcard, resolve it first
+      if ($path -match '\*|\?') {
+        $found = Get-ChildItem -Path $path -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($null -ne $found) {
+          return $true
+        }
+      }
+      elseif (Test-Path $path -PathType Leaf) {
         return $true
       }
     }
@@ -80,15 +88,23 @@ class EnvironmentManager {
 
   [void] AddToUserPath([string] $binPath) {
     [string] $oldUserPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
-    if ($oldUserPath -notlike "*$binPath*") {
+    # Normalize path for comparison (remove trailing backslash)
+    [string] $normalizedBin = $binPath.TrimEnd('\')
+    [string[]] $existingPaths = $oldUserPath -split ';' | ForEach-Object { $_.TrimEnd('\') }
+
+    if ($normalizedBin -notin $existingPaths) {
       [System.Environment]::SetEnvironmentVariable("Path", "$oldUserPath;$binPath", "User")
       $this.WriteInfo("Added to user PATH: $binPath")
     }
   }
 
   [void] RefreshSessionPath() {
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + `
-      [System.Environment]::GetEnvironmentVariable("Path", "User")
+    # Combine Machine and User PATH, avoiding empty separators
+    [string] $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    [string] $userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+    $machinePath = $machinePath.TrimEnd(';')
+    $userPath = $userPath.TrimEnd(';')
+    $env:Path = "$machinePath;$userPath"
   }
 
   [bool] IsPackageManagerAvailable([string] $managerName) {
@@ -126,7 +142,10 @@ class PackageInstaller {
     $this.EnvManager.WriteInfo("Installing via Chocolatey...")
     & choco install $packageName -y --limit-output 2>&1 | Out-Null
 
-    return [PackageManagerResult]::new($true, "Installed via Chocolatey", "choco")
+    if ($LASTEXITCODE -eq 0) {
+      return [PackageManagerResult]::new($true, "Installed via Chocolatey", "choco")
+    }
+    return [PackageManagerResult]::new($false, "Chocolatey installation failed", "choco")
   }
 }
 
@@ -183,9 +202,9 @@ class ClangdInstaller {
     }
 
     $this.EnvManager.WriteError("Could not auto-install clangd. Please install manually:")
-    $this.EnvManager.WriteInfo("  winget install LLVM.clangd")
-    $this.EnvManager.WriteInfo("  Or: winget install LLVM.LLVM")
-    $this.EnvManager.WriteInfo("  Or: Visual Studio with 'C++ Clang tools for Windows' workload")
+    $this.EnvManager.WriteError("  winget install LLVM.clangd")
+    $this.EnvManager.WriteError("  Or: winget install LLVM.LLVM")
+    $this.EnvManager.WriteError("  Or: Visual Studio with 'C++ Clang tools for Windows' workload")
     return $false
   }
 
@@ -199,7 +218,11 @@ class ClangdInstaller {
     }
 
     # Install LSP (clangd is standalone, no separate runtime needed)
-    $this.InstallLsp()
+    [bool] $lspInstalled = $this.InstallLsp()
+    if (-not $lspInstalled) {
+      # Exit code 2: stderr shown to user for Setup hooks
+      return 2
+    }
     return 0
   }
 }

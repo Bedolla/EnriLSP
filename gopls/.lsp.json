@@ -1,15 +1,11 @@
 {
-  "go": {
+  "gopls": {
     "command": "gopls",
+    "args": ["serve"],
     "extensionToLanguage": {
-      ".go": "go"
-    },
-    "loggingConfig": {
-      "args": [
-        "-rpc.trace",
-        "-logfile",
-        "${CLAUDE_PLUGIN_LSP_LOG_FILE}"
-      ]
+      ".go": "go",
+      ".mod": "go.mod",
+      ".sum": "go.sum"
     }
   }
 }

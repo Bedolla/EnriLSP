@@ -1,8 +1,19 @@
 {
-  "description": "Java language server for Windows",
   "name": "jdtls",
   "version": "1.0.0",
+  "description": "Java language server for Windows",
   "author": {
     "name": "Bedolla"
-  }
+  },
+  "homepage": "https://github.com/Bedolla/EnriLSP#jdtls",
+  "repository": "https://github.com/Bedolla/EnriLSP",
+  "license": "MIT",
+  "keywords": [
+    "lsp",
+    "java",
+    "jvm",
+    "backend"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "lspServers": "./.lsp.json"
 }

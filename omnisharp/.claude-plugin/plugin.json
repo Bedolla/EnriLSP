@@ -1,8 +1,19 @@
 {
-  "description": "C# language server for Windows",
   "name": "omnisharp",
   "version": "1.0.0",
+  "description": "C# language server for Windows",
   "author": {
     "name": "Bedolla"
-  }
+  },
+  "homepage": "https://github.com/Bedolla/EnriLSP#omnisharp",
+  "repository": "https://github.com/Bedolla/EnriLSP",
+  "license": "MIT",
+  "keywords": [
+    "lsp",
+    "csharp",
+    "dotnet",
+    "backend"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "lspServers": "./.lsp.json"
 }

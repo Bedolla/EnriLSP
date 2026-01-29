@@ -46,7 +46,8 @@ class EnvironmentManager {
   }
 
   [void] WriteError([string] $message) {
-    Write-Host "[$($this.PluginName)] $message" -ForegroundColor Red
+    # Write to stderr so Claude Code Setup hooks display the message to user
+    [Console]::Error.WriteLine("[$($this.PluginName)] $message")
   }
 
   [bool] FileExists([string] $path) {
@@ -80,15 +81,23 @@ class EnvironmentManager {
 
   [void] AddToUserPath([string] $binPath) {
     [string] $oldUserPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
-    if ($oldUserPath -notlike "*$binPath*") {
+    # Normalize path for comparison (remove trailing backslash)
+    [string] $normalizedBin = $binPath.TrimEnd('\')
+    [string[]] $existingPaths = $oldUserPath -split ';' | ForEach-Object { $_.TrimEnd('\') }
+
+    if ($normalizedBin -notin $existingPaths) {
       [System.Environment]::SetEnvironmentVariable("Path", "$oldUserPath;$binPath", "User")
       $this.WriteInfo("Added to user PATH: $binPath")
     }
   }
 
   [void] RefreshSessionPath() {
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + `
-      [System.Environment]::GetEnvironmentVariable("Path", "User")
+    # Combine Machine and User PATH, avoiding empty separators
+    [string] $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    [string] $userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+    $machinePath = $machinePath.TrimEnd(';')
+    $userPath = $userPath.TrimEnd(';')
+    $env:Path = "$machinePath;$userPath"
   }
 
   [bool] IsPackageManagerAvailable([string] $managerName) {
@@ -126,7 +135,10 @@ class PackageInstaller {
     $this.EnvManager.WriteInfo("Installing via Chocolatey...")
     & choco install $packageName -y --limit-output 2>&1 | Out-Null
 
-    return [PackageManagerResult]::new($true, "Installed via Chocolatey", "choco")
+    if ($LASTEXITCODE -eq 0) {
+      return [PackageManagerResult]::new($true, "Installed via Chocolatey", "choco")
+    }
+    return [PackageManagerResult]::new($false, "Chocolatey installation failed", "choco")
   }
 
   [PackageManagerResult] InstallWithGem([string] $gemName) {
@@ -149,7 +161,10 @@ class PackageInstaller {
     
     & $gemExe install $gemName --no-document 2>&1 | Out-Null
 
-    return [PackageManagerResult]::new($true, "Installed via gem", "gem")
+    if ($LASTEXITCODE -eq 0) {
+      return [PackageManagerResult]::new($true, "Installed via gem", "gem")
+    }
+    return [PackageManagerResult]::new($false, "gem installation failed", "gem")
   }
 }
 
@@ -172,9 +187,10 @@ class SolargraphInstaller {
     "C:\Ruby34-x64\bin\gem.cmd",
     "C:\Ruby33-x64\bin\gem.cmd"
   )
-  # RubyInstaller download URL (Ruby 3.4 with DevKit for native gem compilation)
-  hidden [string] $RubyInstallerUrl = "https://github.com/oneclick/rubyinstaller2/releases/download/RubyInstaller-3.4.4-1/rubyinstaller-devkit-3.4.4-1-x64.exe"
-  hidden [string] $RubyInstallerVersion = "3.4.4-1"
+  # RubyInstaller download URL (Ruby 3.4.x recommended for maximum gem compatibility)
+  # Ruby 4.0 exists but 3.4.x is recommended by RubyInstaller for stability
+  hidden [string] $RubyInstallerUrl = "https://github.com/oneclick/rubyinstaller2/releases/download/RubyInstaller-3.4.8-1/rubyinstaller-devkit-3.4.8-1-x64.exe"
+  hidden [string] $RubyInstallerVersion = "3.4.8-1"
 
   SolargraphInstaller() {
     $this.EnvManager = [EnvironmentManager]::new("solargraph")
@@ -215,7 +231,7 @@ class SolargraphInstaller {
       [string] $tempFile = "$env:TEMP\rubyinstaller-$($this.RubyInstallerVersion).exe"
       
       $this.EnvManager.WriteInfo("Downloading Ruby $($this.RubyInstallerVersion) from GitHub...")
-      Invoke-WebRequest -Uri $this.RubyInstallerUrl -OutFile $tempFile -UseBasicParsing
+      Invoke-WebRequest -Uri $this.RubyInstallerUrl -OutFile $tempFile -UseBasicParsing -TimeoutSec 180
       
       if (-not (Test-Path $tempFile)) {
         $this.EnvManager.WriteError("Download failed")
@@ -283,7 +299,7 @@ class SolargraphInstaller {
     }
 
     $this.EnvManager.WriteError("Failed to install solargraph. Please run manually:")
-    $this.EnvManager.WriteInfo("  gem install solargraph")
+    $this.EnvManager.WriteError("  gem install solargraph")
     return $false
   }
 
@@ -300,12 +316,17 @@ class SolargraphInstaller {
     if (-not $this.IsRuntimeInstalled()) {
       [bool] $runtimeInstalled = $this.InstallRuntime()
       if (-not $runtimeInstalled) {
-        return 0
+        # Exit code 2: stderr shown to user for Setup hooks
+        return 2
       }
     }
 
     # Install LSP
-    $this.InstallLsp()
+    [bool] $lspInstalled = $this.InstallLsp()
+    if (-not $lspInstalled) {
+      # Exit code 2: stderr shown to user for Setup hooks
+      return 2
+    }
     return 0
   }
 }

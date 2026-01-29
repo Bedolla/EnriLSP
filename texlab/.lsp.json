@@ -1,0 +1,10 @@
+{
+  "texlab": {
+    "command": "texlab",
+    "args": [],
+    "extensionToLanguage": {
+      ".tex": "latex",
+      ".bib": "bibtex"
+    }
+  }
+}

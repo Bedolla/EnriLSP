@@ -1,0 +1,9 @@
+{
+  "svelte-language-server": {
+    "command": "svelteserver",
+    "args": ["--stdio"],
+    "extensionToLanguage": {
+      ".svelte": "svelte"
+    }
+  }
+}

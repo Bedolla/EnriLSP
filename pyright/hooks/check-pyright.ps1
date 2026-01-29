@@ -46,7 +46,8 @@ class EnvironmentManager {
   }
 
   [void] WriteError([string] $message) {
-    Write-Host "[$($this.PluginName)] $message" -ForegroundColor Red
+    # Write to stderr so Claude Code Setup hooks display the message to user
+    [Console]::Error.WriteLine("[$($this.PluginName)] $message")
   }
 
   [bool] FileExists([string] $path) {
@@ -89,15 +90,23 @@ class EnvironmentManager {
 
   [void] AddToUserPath([string] $binPath) {
     [string] $oldUserPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
-    if ($oldUserPath -notlike "*$binPath*") {
+    # Normalize path for comparison (remove trailing backslash)
+    [string] $normalizedBin = $binPath.TrimEnd('\')
+    [string[]] $existingPaths = $oldUserPath -split ';' | ForEach-Object { $_.TrimEnd('\') }
+
+    if ($normalizedBin -notin $existingPaths) {
       [System.Environment]::SetEnvironmentVariable("Path", "$oldUserPath;$binPath", "User")
       $this.WriteInfo("Added to user PATH: $binPath")
     }
   }
 
   [void] RefreshSessionPath() {
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + `
-      [System.Environment]::GetEnvironmentVariable("Path", "User")
+    # Combine Machine and User PATH, avoiding empty separators
+    [string] $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    [string] $userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+    $machinePath = $machinePath.TrimEnd(';')
+    $userPath = $userPath.TrimEnd(';')
+    $env:Path = "$machinePath;$userPath"
   }
 
   [bool] IsPackageManagerAvailable([string] $managerName) {
@@ -135,14 +144,20 @@ class PackageInstaller {
     $this.EnvManager.WriteInfo("Installing via Chocolatey...")
     & choco install $packageName -y --limit-output 2>&1 | Out-Null
 
-    return [PackageManagerResult]::new($true, "Installed via Chocolatey", "choco")
+    if ($LASTEXITCODE -eq 0) {
+      return [PackageManagerResult]::new($true, "Installed via Chocolatey", "choco")
+    }
+    return [PackageManagerResult]::new($false, "Chocolatey installation failed", "choco")
   }
 
   [PackageManagerResult] InstallWithPip([string] $packageName) {
     $this.EnvManager.WriteInfo("Installing via pip...")
     & pip install $packageName 2>&1 | Out-Null
 
-    return [PackageManagerResult]::new($true, "Installed via pip", "pip")
+    if ($LASTEXITCODE -eq 0) {
+      return [PackageManagerResult]::new($true, "Installed via pip", "pip")
+    }
+    return [PackageManagerResult]::new($false, "pip installation failed", "pip")
   }
 }
 
@@ -182,7 +197,7 @@ class PyrightInstaller {
     "C:\Python3*\python.exe",
     "C:\Program Files\Python3*\python.exe"
   )
-  # Python 3.14 is the latest stable version (Dec 2025)
+  # Python 3.14 is the latest stable version (Oct 2025 - PEP 745)
   hidden [string] $WingetPackageId = "Python.Python.3.14"
 
   PyrightInstaller() {
@@ -282,7 +297,7 @@ class PyrightInstaller {
     }
 
     $this.EnvManager.WriteError("Could not auto-install Python. Please install manually:")
-    $this.EnvManager.WriteInfo("  winget install Python.Python.3.14")
+    $this.EnvManager.WriteError("  winget install Python.Python.3.14")
     return $false
   }
 
@@ -303,7 +318,7 @@ class PyrightInstaller {
     }
 
     $this.EnvManager.WriteError("Failed to install pyright. Please run manually:")
-    $this.EnvManager.WriteInfo("  pip install pyright")
+    $this.EnvManager.WriteError("  pip install pyright")
     return $false
   }
 
@@ -320,12 +335,17 @@ class PyrightInstaller {
     if (-not $this.IsRuntimeInstalled()) {
       [bool] $runtimeInstalled = $this.InstallRuntime()
       if (-not $runtimeInstalled) {
-        return 0
+        # Exit code 2: stderr shown to user for Setup hooks
+        return 2
       }
     }
 
     # Install LSP
-    $this.InstallLsp()
+    [bool] $lspInstalled = $this.InstallLsp()
+    if (-not $lspInstalled) {
+      # Exit code 2: stderr shown to user for Setup hooks
+      return 2
+    }
     return 0
   }
 }

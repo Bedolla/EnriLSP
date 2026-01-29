@@ -1,8 +1,19 @@
 {
-  "description": "GraphQL language server for Windows",
   "name": "graphql-lsp",
   "version": "1.0.0",
+  "description": "GraphQL language server for Windows",
   "author": {
     "name": "Bedolla"
-  }
+  },
+  "homepage": "https://github.com/Bedolla/EnriLSP#graphql-lsp",
+  "repository": "https://github.com/Bedolla/EnriLSP",
+  "license": "MIT",
+  "keywords": [
+    "lsp",
+    "graphql",
+    "api",
+    "query"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "lspServers": "./.lsp.json"
 }

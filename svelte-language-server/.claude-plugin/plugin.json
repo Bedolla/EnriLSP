@@ -1,8 +1,19 @@
 {
-  "description": "Svelte language server for Windows",
   "name": "svelte-language-server",
   "version": "1.0.0",
+  "description": "Svelte language server for Windows",
   "author": {
     "name": "Bedolla"
-  }
+  },
+  "homepage": "https://github.com/Bedolla/EnriLSP#svelte-language-server",
+  "repository": "https://github.com/Bedolla/EnriLSP",
+  "license": "MIT",
+  "keywords": [
+    "lsp",
+    "svelte",
+    "frontend",
+    "framework"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "lspServers": "./.lsp.json"
 }

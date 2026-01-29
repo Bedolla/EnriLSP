@@ -1,0 +1,10 @@
+{
+  "angular-language-server": {
+    "command": "ngserver",
+    "args": ["--stdio"],
+    "extensionToLanguage": {
+      ".ts": "typescript",
+      ".html": "html"
+    }
+  }
+}

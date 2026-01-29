@@ -1,0 +1,9 @@
+{
+  "astro-language-server": {
+    "command": "astro-ls",
+    "args": ["--stdio"],
+    "extensionToLanguage": {
+      ".astro": "astro"
+    }
+  }
+}

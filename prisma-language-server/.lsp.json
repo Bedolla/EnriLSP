@@ -1,0 +1,9 @@
+{
+  "prisma-language-server": {
+    "command": "prisma-language-server",
+    "args": ["--stdio"],
+    "extensionToLanguage": {
+      ".prisma": "prisma"
+    }
+  }
+}

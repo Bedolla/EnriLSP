@@ -42,7 +42,8 @@ class EnvironmentManager {
   }
 
   [void] WriteError([string] $message) {
-    Write-Host "[$($this.PluginName)] $message" -ForegroundColor Red
+    # Write to stderr so Claude Code Setup hooks display the message to user
+    [Console]::Error.WriteLine("[$($this.PluginName)] $message")
   }
 
   [bool] CommandExists([string] $command) {
@@ -51,15 +52,23 @@ class EnvironmentManager {
 
   [void] AddToUserPath([string] $binPath) {
     [string] $oldUserPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
-    if ($oldUserPath -notlike "*$binPath*") {
+    # Normalize path for comparison (remove trailing backslash)
+    [string] $normalizedBin = $binPath.TrimEnd('\')
+    [string[]] $existingPaths = $oldUserPath -split ';' | ForEach-Object { $_.TrimEnd('\') }
+
+    if ($normalizedBin -notin $existingPaths) {
       [System.Environment]::SetEnvironmentVariable("Path", "$oldUserPath;$binPath", "User")
       $this.WriteInfo("Added to user PATH: $binPath")
     }
   }
 
   [void] RefreshSessionPath() {
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + `
-      [System.Environment]::GetEnvironmentVariable("Path", "User")
+    # Combine Machine and User PATH, avoiding empty separators
+    [string] $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    [string] $userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+    $machinePath = $machinePath.TrimEnd(';')
+    $userPath = $userPath.TrimEnd(';')
+    $env:Path = "$machinePath;$userPath"
   }
 }
 
@@ -147,23 +156,28 @@ class AngularLspInstaller {
     return $false
   }
 
-  [void] Run() {
+  [int] Run() {
     if ($this.IsInstalled()) {
       $this.EnvManager.WriteSuccess("Angular Language Server is ready")
-      return
+      return 0
     }
 
     $this.EnvManager.WriteInfo("Angular Language Server not found. Installing...")
     if ($this.Install()) {
       if ($this.IsInstalled()) {
         $this.EnvManager.WriteSuccess("Installation complete!")
+        return 0
       }
       else {
         $this.EnvManager.WriteError("Installation completed but ngserver not found in PATH")
+        # Exit code 2: stderr shown to user for Setup hooks
+        return 2
       }
     }
     else {
       $this.EnvManager.WriteError("Installation failed")
+      # Exit code 2: stderr shown to user for Setup hooks
+      return 2
     }
   }
 }
@@ -172,5 +186,5 @@ class AngularLspInstaller {
 # MAIN ENTRY POINT
 # ============================================================================
 
-$installer = [AngularLspInstaller]::new()
-$installer.Run()
+[AngularLspInstaller] $installer = [AngularLspInstaller]::new()
+exit $installer.Run()

@@ -1,8 +1,19 @@
 {
-  "description": "Zig language server for Windows",
   "name": "zls",
   "version": "1.0.0",
+  "description": "Zig language server for Windows",
   "author": {
     "name": "Bedolla"
-  }
+  },
+  "homepage": "https://github.com/Bedolla/EnriLSP#zls",
+  "repository": "https://github.com/Bedolla/EnriLSP",
+  "license": "MIT",
+  "keywords": [
+    "lsp",
+    "zig",
+    "systems",
+    "low-level"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "lspServers": "./.lsp.json"
 }

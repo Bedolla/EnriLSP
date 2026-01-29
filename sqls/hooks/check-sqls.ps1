@@ -42,7 +42,8 @@ class EnvironmentManager {
   }
 
   [void] WriteError([string] $message) {
-    Write-Host "[$($this.PluginName)] $message" -ForegroundColor Red
+    # Write to stderr so Claude Code Setup hooks display the message to user
+    [Console]::Error.WriteLine("[$($this.PluginName)] $message")
   }
 
   [bool] AnyFileExists([string[]] $paths) {
@@ -56,15 +57,23 @@ class EnvironmentManager {
 
   [void] AddToUserPath([string] $binPath) {
     [string] $oldUserPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
-    if ($oldUserPath -notlike "*$binPath*") {
+    # Normalize path for comparison (remove trailing backslash)
+    [string] $normalizedBin = $binPath.TrimEnd('\')
+    [string[]] $existingPaths = $oldUserPath -split ';' | ForEach-Object { $_.TrimEnd('\') }
+
+    if ($normalizedBin -notin $existingPaths) {
       [System.Environment]::SetEnvironmentVariable("Path", "$oldUserPath;$binPath", "User")
       $this.WriteInfo("Added to user PATH: $binPath")
     }
   }
 
   [void] RefreshSessionPath() {
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + `
-      [System.Environment]::GetEnvironmentVariable("Path", "User")
+    # Combine Machine and User PATH, avoiding empty separators
+    [string] $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    [string] $userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+    $machinePath = $machinePath.TrimEnd(';')
+    $userPath = $userPath.TrimEnd(';')
+    $env:Path = "$machinePath;$userPath"
   }
 }
 
@@ -95,7 +104,7 @@ class SqlsInstaller {
     try {
       $this.EnvManager.WriteInfo("Fetching latest release from GitHub...")
       $headers = @{ "User-Agent" = "EnriLSP-Installer" }
-      $release = Invoke-RestMethod -Uri $this.GitHubApiUrl -Headers $headers -ErrorAction Stop
+      $release = Invoke-RestMethod -Uri $this.GitHubApiUrl -Headers $headers -TimeoutSec 30 -ErrorAction Stop
       
       foreach ($asset in $release.assets) {
         if ($asset.name -like "*windows*.zip") {
@@ -128,7 +137,7 @@ class SqlsInstaller {
     
     try {
       $ProgressPreference = 'SilentlyContinue'
-      Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -UseBasicParsing
+      Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 120
       $ProgressPreference = 'Continue'
       
       $this.EnvManager.WriteInfo("Extracting...")
@@ -163,7 +172,9 @@ class SqlsInstaller {
 
     if (-not $this.InstallFromGitHub()) {
       $this.EnvManager.WriteError("Failed to install. Please install manually:")
-      $this.EnvManager.WriteInfo("  Download from: https://github.com/sqls-server/sqls/releases")
+      $this.EnvManager.WriteError("  Download from: https://github.com/sqls-server/sqls/releases")
+      # Exit code 2: stderr shown to user for Setup hooks
+      return 2
     }
     return 0
   }

@@ -1,13 +1,17 @@
 {
+  "description": "Check for astro-language-server installation on init",
   "hooks": {
-    "astro-language-server": {
-      "command": "powershell.exe",
-      "args": [
-        "-ExecutionPolicy",
-        "Bypass",
-        "-File",
-        "{{configDir}}\\astro-language-server\\hooks\\check-astro-language-server.ps1"
-      ]
-    }
+    "Setup": [
+      {
+        "matcher": "init",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/hooks/check-astro-language-server.ps1\"",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
   }
 }
