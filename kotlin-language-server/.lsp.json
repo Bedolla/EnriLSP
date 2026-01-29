@@ -8,7 +8,7 @@
       "-ExecutionPolicy",
       "Bypass",
       "-Command",
-      "$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';$server=[IO.Path]::Combine($env:LOCALAPPDATA,'kotlin-lsp','kotlin-lsp.cmd');for($i=0;$i -lt 480 -and -not (Test-Path $server);$i++){Start-Sleep -Milliseconds 250};if(-not (Test-Path $server)){exit 127};& $server"
+      "$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';$server=[IO.Path]::Combine($env:LOCALAPPDATA,'kotlin-lsp','kotlin-lsp.cmd');for($i=0;$i -lt 480 -and -not (Test-Path $server);$i++){Start-Sleep -Milliseconds 250};if(-not (Test-Path $server)){exit 127};& $server --stdio"
     ],
     "extensionToLanguage": {
       ".kt": "kotlin",

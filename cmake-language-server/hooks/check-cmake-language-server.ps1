@@ -152,6 +152,19 @@ class CmakeLspInstaller {
     }
   }
 
+  [string] GetVenvPackageVersion([string] $packageName) {
+    if (-not (Test-Path $this.VenvPython -PathType Leaf)) {
+      return ""
+    }
+
+    try {
+      return (& $this.VenvPython -c "import importlib.metadata as m; print(m.version('$packageName'))" 2>$null).Trim()
+    }
+    catch {
+      return ""
+    }
+  }
+
   [PythonCommand] FindPythonCommand() {
     # Prefer a dedicated Python 3.13/3.12 install by absolute path. This avoids
     # the common Windows situation where `py -3.13` or `python` may resolve to
@@ -204,7 +217,21 @@ class CmakeLspInstaller {
 
     [string] $venvVersion = $this.GetVenvPythonVersion()
     if ($venvVersion -match '^3\.(12|13)$') {
-      return $true
+      # cmake-language-server (currently) expects pygls v1.x; pygls v2 changed API
+      # and will crash at import time. If we detect pygls>=2, reinstall with pin.
+      [string] $pyglsVersion = $this.GetVenvPackageVersion("pygls")
+      if ($pyglsVersion -match '^1\.') {
+        return $true
+      }
+
+      if (-not [string]::IsNullOrWhiteSpace($pyglsVersion)) {
+        $this.EnvManager.WriteWarning("Existing venv has pygls $pyglsVersion. Reinstalling to pin pygls<2 for compatibility.")
+      }
+      else {
+        $this.EnvManager.WriteWarning("Unable to determine pygls version. Reinstalling cmake-language-server to ensure compatibility.")
+      }
+
+      return $false
     }
 
     if (-not [string]::IsNullOrWhiteSpace($venvVersion)) {
@@ -295,7 +322,8 @@ class CmakeLspInstaller {
     $this.EnvManager.WriteInfo("Installing cmake-language-server in venv...")
     try {
       & $this.VenvPython -m pip install -U pip 2>&1 | Out-Null
-      & $this.VenvPython -m pip install "cmake-language-server" 2>&1 | Out-Null
+      # Pin pygls<2 to avoid import-time crashes on Windows (pygls v2 API changes).
+      & $this.VenvPython -m pip install --upgrade --force-reinstall "pygls<2" "cmake-language-server==0.1.11" 2>&1 | Out-Null
       if (Test-Path $this.VenvLspExe -PathType Leaf) {
         $this.EnvManager.WriteSuccess("cmake-language-server installed successfully")
         return $true

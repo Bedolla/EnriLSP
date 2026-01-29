@@ -8,7 +8,7 @@
       "-ExecutionPolicy",
       "Bypass",
       "-Command",
-      "$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';$root=[IO.Path]::Combine($env:LOCALAPPDATA,'PowerShellEditorServices','PowerShellEditorServices');$start=[IO.Path]::Combine($root,'Start-EditorServices.ps1');for($i=0;$i -lt 480 -and -not (Test-Path $start);$i++){Start-Sleep -Milliseconds 250};if(-not (Test-Path $start)){exit 127};$logDir=[IO.Path]::Combine($env:LOCALAPPDATA,'EnriLSP','logs');New-Item -ItemType Directory -Force -Path $logDir | Out-Null;$logPath=[IO.Path]::Combine($logDir,'powershell-editor-services.log');& $start -HostName 'Claude Code' -HostProfileId 'claude' -HostVersion '1.0.0' -BundledModulesPath $root -LogPath $logPath -LogLevel 'Normal' -Stdio"
+      "$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';$root=[IO.Path]::Combine($env:LOCALAPPDATA,'PowerShellEditorServices','PowerShellEditorServices');$start=[IO.Path]::Combine($root,'Start-EditorServices.ps1');for($i=0;$i -lt 480 -and -not (Test-Path $start);$i++){Start-Sleep -Milliseconds 250};if(-not (Test-Path $start)){exit 127};$logDir=[IO.Path]::Combine($env:LOCALAPPDATA,'EnriLSP','logs');New-Item -ItemType Directory -Force -Path $logDir | Out-Null;$logPath=[IO.Path]::Combine($logDir,'powershell-editor-services.log');$sessionDetailsPath=[IO.Path]::Combine($logDir,'PowerShellEditorServices.json');& $start -HostName 'Claude Code' -HostProfileId 'claude' -HostVersion '1.0.0' -BundledModulesPath $root -LogPath $logPath -LogLevel 'Normal' -SessionDetailsPath $sessionDetailsPath -Stdio"
     ],
     "extensionToLanguage": {
       ".ps1": "powershell",

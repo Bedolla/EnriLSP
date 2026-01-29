@@ -262,7 +262,7 @@ try {
     $buffer.RemoveRange(0, $bodyStart + $contentLength)
 
     [string] $jsonIn = [System.Text.Encoding]::UTF8.GetString($bodyBytes)
-    $msg = $jsonIn | ConvertFrom-Json -Depth 100
+    $msg = $jsonIn | ConvertFrom-Json
     $msg = Fix-Value $msg
     Try-InjectTsdk $msg
 
