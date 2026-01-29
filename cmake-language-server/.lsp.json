@@ -3,7 +3,6 @@
     "command": "cmake-language-server",
     "args": [],
     "extensionToLanguage": {
-      "CMakeLists.txt": "cmake",
       ".cmake": "cmake"
     }
   }
