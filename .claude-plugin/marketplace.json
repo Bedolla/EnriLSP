@@ -112,7 +112,7 @@
     },
     {
       "name": "kotlin-language-server",
-      "description": "Kotlin language server for Windows",
+      "description": "JetBrains Kotlin LSP (official) for Windows",
       "version": "1.0.0",
       "author": { "name": "Bedolla" },
       "source": "./kotlin-language-server",

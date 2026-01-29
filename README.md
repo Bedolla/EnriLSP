@@ -687,7 +687,7 @@ Or: Close and reopen your terminal, then run `claude`.
 | graphql-lsp | GraphQL | Node.js | graphql-language-service-cli |
 | intelephense | PHP | Node.js | intelephense |
 | jdtls | Java | Java 21+ | Eclipse JDT LS |
-| kotlin-language-server | Kotlin | Java 11+ | kotlin-language-server |
+| kotlin-language-server | Kotlin | Bundled JRE (no Java required) | kotlin-lsp |
 | lua-language-server | Lua | Standalone | lua-language-server |
 | marksman | Markdown | Standalone | marksman |
 | omnisharp | C# | .NET SDK | csharp-ls |
@@ -928,12 +928,15 @@ winget install Microsoft.OpenJDK.25
 <summary><strong>Kotlin (kotlin-language-server)</strong></summary>
 
 ```powershell
-# Install Microsoft OpenJDK 25
-winget install Microsoft.OpenJDK.25
-
-# Download kotlin-language-server from:
-# https://github.com/fwcd/kotlin-language-server/releases
-# Extract to %LOCALAPPDATA%\kotlin-language-server and add bin to PATH
+# JetBrains Kotlin LSP (official) bundles its own JRE, so you don't need to install Java
+# to run the server.
+#
+# Download from:
+# https://github.com/Kotlin/kotlin-lsp/releases/latest
+#
+# Under "Standalone Kotlin LSP ZIP Archive", download the Windows-x64 zip
+# Extract to %LOCALAPPDATA%\kotlin-lsp and add it to PATH
+# The entry point is: kotlin-lsp.cmd
 ```
 
 </details>

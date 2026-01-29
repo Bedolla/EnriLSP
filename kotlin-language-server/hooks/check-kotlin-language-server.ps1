@@ -1,31 +1,29 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    EnriLSP - Kotlin Language Server installer
+    EnriLSP - Kotlin LSP (official) installer
 .DESCRIPTION
-    Checks for kotlin-language-server installation and auto-installs Java 11+ runtime if missing.
-    Uses OOP patterns with explicit types. Verifies by file path, not PATH env.
+    Installs the JetBrains/Kotlin official Kotlin Language Server (kotlin-lsp) on Windows.
+
+    Why this exists:
+    - The legacy community server (fwcd/kotlin-language-server) can crash on very new Java versions
+      (e.g. Java 25 parsing issues).
+    - Kotlin LSP publishes a standalone Windows ZIP that bundles its own JRE (no separate Java install
+      is required for the server to run).
+
+    This hook:
+    - Downloads the latest kotlin-lsp standalone zip
+    - Verifies SHA-256 (best-effort)
+    - Extracts it to %LOCALAPPDATA%\kotlin-lsp
+    - Adds that folder to user PATH
 .NOTES
     Author: Bedolla
     License: MIT
-    Requirements: Java 11+ (auto-installed if missing)
 #>
 
 # ============================================================================
 # CLASSES
 # ============================================================================
-
-class PackageManagerResult {
-  [bool] $Success
-  [string] $Message
-  [string] $ManagerUsed
-
-  PackageManagerResult([bool] $success, [string] $message, [string] $managerUsed) {
-    $this.Success = $success
-    $this.Message = $message
-    $this.ManagerUsed = $managerUsed
-  }
-}
 
 class EnvironmentManager {
   hidden [string] $PluginName
@@ -51,47 +49,8 @@ class EnvironmentManager {
     [Console]::Error.WriteLine("[$($this.PluginName)] $message")
   }
 
-  [bool] FileExists([string] $path) {
-    return (Test-Path $path -PathType Leaf)
-  }
-
-  [bool] AnyFileExists([string[]] $paths) {
-    foreach ($path in $paths) {
-      if (Test-Path $path -PathType Leaf) {
-        return $true
-      }
-    }
-    return $false
-  }
-
-  [string] FindExistingFile([string[]] $paths) {
-    foreach ($path in $paths) {
-      # If path contains wildcard, resolve it first
-      if ($path -match '\*|\?') {
-        $found = Get-ChildItem -Path $path -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($null -ne $found) {
-          return $found.FullName
-        }
-      }
-      elseif (Test-Path $path -PathType Leaf) {
-        return $path
-      }
-    }
-    return ""
-  }
-
-  [string] FindWithWildcard([string] $pattern) {
-    # Use Get-ChildItem with wildcard pattern to find files
-    $found = Get-ChildItem -Path $pattern -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($null -ne $found) {
-      return $found.FullName
-    }
-    return ""
-  }
-
   [void] AddToUserPath([string] $binPath) {
     [string] $oldUserPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
-    # Normalize path for comparison (remove trailing backslash)
     [string] $normalizedBin = $binPath.TrimEnd('\')
     [string[]] $existingPaths = $oldUserPath -split ';' | ForEach-Object { $_.TrimEnd('\') }
 
@@ -102,309 +61,188 @@ class EnvironmentManager {
   }
 
   [void] RefreshSessionPath() {
-    # Combine Machine and User PATH, avoiding empty separators
     [string] $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
     [string] $userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
     $machinePath = $machinePath.TrimEnd(';')
     $userPath = $userPath.TrimEnd(';')
     $env:Path = "$machinePath;$userPath"
   }
-
-  [bool] IsPackageManagerAvailable([string] $managerName) {
-    $cmd = Get-Command $managerName -ErrorAction SilentlyContinue
-    return ($null -ne $cmd)
-  }
 }
 
-class PackageInstaller {
+class KotlinLspInstaller {
   hidden [EnvironmentManager] $EnvManager
+  hidden [string] $InstallDir = "$env:LOCALAPPDATA\kotlin-lsp"
+  hidden [string] $GitHubApiUrl = "https://api.github.com/repos/Kotlin/kotlin-lsp/releases/latest"
 
-  PackageInstaller([EnvironmentManager] $envManager) {
-    $this.EnvManager = $envManager
+  KotlinLspInstaller() {
+    $this.EnvManager = [EnvironmentManager]::new("kotlin-lsp")
   }
 
-  [PackageManagerResult] InstallWithWinget([string] $packageId) {
-    if (-not $this.EnvManager.IsPackageManagerAvailable("winget")) {
-      return [PackageManagerResult]::new($false, "winget not available", "")
+  [string] GetPlatformSuffix() {
+    [string] $arch = $env:PROCESSOR_ARCHITECTURE
+    if ($arch -eq "x86" -and -not [string]::IsNullOrWhiteSpace($env:PROCESSOR_ARCHITEW6432)) {
+      $arch = $env:PROCESSOR_ARCHITEW6432
     }
 
-    $this.EnvManager.WriteInfo("Installing via winget...")
-    & winget install $packageId --silent --disable-interactivity --accept-package-agreements --accept-source-agreements 2>&1 | Out-Null
-
-    if ($LASTEXITCODE -eq 0) {
-      return [PackageManagerResult]::new($true, "Installed successfully", "winget")
+    switch ($arch.ToUpperInvariant()) {
+      "ARM64" { return "win-aarch64" }
+      default { return "win-x64" }
     }
-    return [PackageManagerResult]::new($false, "Installation failed", "winget")
   }
 
-  [PackageManagerResult] InstallWithChocolatey([string] $packageName) {
-    if (-not $this.EnvManager.IsPackageManagerAvailable("choco")) {
-      return [PackageManagerResult]::new($false, "chocolatey not available", "")
+  [string] GetLatestVersion() {
+    try {
+      $headers = @{ "User-Agent" = "EnriLSP-Installer" }
+      $release = Invoke-RestMethod -Uri $this.GitHubApiUrl -Headers $headers -TimeoutSec 30 -ErrorAction Stop
+
+      [string] $tag = [string] $release.tag_name
+      if ($tag -match '^kotlin-lsp/v(.+)$') {
+        return $Matches[1]
+      }
+      if ($tag -match '^v(.+)$') {
+        return $Matches[1]
+      }
+      return $tag
     }
-
-    $this.EnvManager.WriteInfo("Installing via Chocolatey...")
-    & choco install $packageName -y --limit-output 2>&1 | Out-Null
-
-    if ($LASTEXITCODE -eq 0) {
-      return [PackageManagerResult]::new($true, "Installed via Chocolatey", "choco")
+    catch {
+      $this.EnvManager.WriteError("Failed to fetch latest Kotlin LSP version: $($_.Exception.Message)")
+      return ""
     }
-    return [PackageManagerResult]::new($false, "Chocolatey installation failed", "choco")
-  }
-}
-
-class JavaVersionChecker {
-  hidden [int] $MinimumVersion
-  hidden [string[]] $JavaPaths
-  hidden [string[]] $WildcardPatterns
-  hidden [EnvironmentManager] $EnvManager
-
-  JavaVersionChecker([int] $minimumVersion, [string[]] $javaPaths, [string[]] $wildcardPatterns, [EnvironmentManager] $envManager) {
-    $this.MinimumVersion = $minimumVersion
-    $this.JavaPaths = $javaPaths
-    $this.WildcardPatterns = $wildcardPatterns
-    $this.EnvManager = $envManager
   }
 
-  [string] FindJavaExe() {
-    # First try wildcard patterns (finds latest installed versions)
-    foreach ($pattern in $this.WildcardPatterns) {
-      [string] $found = $this.EnvManager.FindWithWildcard($pattern)
-      if (-not [string]::IsNullOrEmpty($found)) {
-        return $found
+  [string] GetZipUrl([string] $version, [string] $platformSuffix) {
+    return "https://download-cdn.jetbrains.com/kotlin-lsp/$version/kotlin-lsp-$version-$platformSuffix.zip"
+  }
+
+  [string] GetShaUrl([string] $zipUrl) {
+    return "$zipUrl.sha256"
+  }
+
+  [string] DecodeWebContent([object] $content) {
+    if ($content -is [byte[]]) {
+      return [System.Text.Encoding]::UTF8.GetString($content)
+    }
+    return [string] $content
+  }
+
+  [string] GetExpectedSha256([string] $shaUrl) {
+    try {
+      $ProgressPreference = 'SilentlyContinue'
+      $resp = Invoke-WebRequest -Uri $shaUrl -UseBasicParsing -TimeoutSec 60 -ErrorAction Stop
+      $ProgressPreference = 'Continue'
+
+      [string] $text = $this.DecodeWebContent($resp.Content)
+      # Format: "<hash> *filename"
+      [string[]] $parts = $text.Split(@(' ', "`t", "`r", "`n"), [System.StringSplitOptions]::RemoveEmptyEntries)
+      if ($parts.Length -ge 1) {
+        return $parts[0].Trim()
       }
     }
-    # Then try known paths (fallback)
-    foreach ($javaPath in $this.JavaPaths) {
-      if (Test-Path $javaPath -PathType Leaf) {
-        return $javaPath
-      }
+    catch {
+      $this.EnvManager.WriteWarning("Could not fetch SHA-256 checksum (continuing): $($_.Exception.Message)")
     }
     return ""
   }
 
-  [int] GetInstalledVersion() {
-    [string] $javaPath = $this.FindJavaExe()
-    if (-not [string]::IsNullOrEmpty($javaPath)) {
-      try {
-        [string] $output = & $javaPath -version 2>&1 | Out-String
-        [regex] $pattern = 'version "(\d+)'
-        [System.Text.RegularExpressions.Match] $match = $pattern.Match($output)
-        
-        if ($match.Success) {
-          return [int]$match.Groups[1].Value
-        }
-      }
-      catch {
-        # Ignore errors
-      }
-    }
-    return 0
+  [bool] IsInstalled() {
+    return (Test-Path (Join-Path $this.InstallDir "kotlin-lsp.cmd") -PathType Leaf)
   }
 
-  [bool] MeetsMinimumVersion() {
-    [int] $version = $this.GetInstalledVersion()
-    return ($version -ge $this.MinimumVersion)
-  }
-}
-
-class KotlinLsInstaller {
-  hidden [EnvironmentManager] $EnvManager
-  hidden [PackageInstaller] $PkgInstaller
-  hidden [JavaVersionChecker] $JavaChecker
-  # Kotlin LS requires Java 11+ but we install the LATEST (OpenJDK 25)
-  hidden [int] $MinJavaVersion = 11
-  hidden [string] $ManualInstallPath = "$env:LOCALAPPDATA\kotlin-language-server"
-  hidden [string[]] $LspKnownPaths = @(
-    "$env:LOCALAPPDATA\kotlin-language-server\bin\kotlin-language-server.bat",
-    "$env:LOCALAPPDATA\kotlin-language-server\server\bin\kotlin-language-server.bat"
-  )
-  hidden [string[]] $RuntimeKnownPaths = @(
-    "C:\Program Files\Microsoft\jdk-25*\bin\java.exe",
-    "C:\Program Files\Microsoft\jdk-24*\bin\java.exe",
-    "C:\Program Files\Microsoft\jdk-21*\bin\java.exe",
-    "C:\Program Files\Microsoft\jdk-17*\bin\java.exe",
-    "C:\Program Files\Eclipse Adoptium\jdk-25*\bin\java.exe",
-    "C:\Program Files\Eclipse Adoptium\jdk-24*\bin\java.exe",
-    "C:\Program Files\Eclipse Adoptium\jdk-21*\bin\java.exe",
-    "C:\Program Files\Eclipse Adoptium\jdk-17*\bin\java.exe"
-  )
-  # Wildcard patterns for dynamic Java version detection (prioritize newer versions)
-  hidden [string[]] $RuntimeWildcardPatterns = @(
-    "C:\Program Files\Microsoft\jdk-25*\bin\java.exe",
-    "C:\Program Files\Microsoft\jdk-24*\bin\java.exe",
-    "C:\Program Files\Microsoft\jdk-21*\bin\java.exe",
-    "C:\Program Files\Microsoft\jdk-17*\bin\java.exe",
-    "C:\Program Files\Eclipse Adoptium\jdk-25*\bin\java.exe",
-    "C:\Program Files\Eclipse Adoptium\jdk-24*\bin\java.exe",
-    "C:\Program Files\Eclipse Adoptium\jdk-21*\bin\java.exe",
-    "C:\Program Files\Eclipse Adoptium\jdk-17*\bin\java.exe",
-    "C:\Program Files\Java\jdk-25*\bin\java.exe",
-    "C:\Program Files\Java\jdk-24*\bin\java.exe"
-  )
-  # Install LATEST Microsoft Build of OpenJDK 25 (official, secure)
-  hidden [string] $WingetJavaPackageId = "Microsoft.OpenJDK.25"
-
-  KotlinLsInstaller() {
-    $this.EnvManager = [EnvironmentManager]::new("kotlin-language-server")
-    $this.PkgInstaller = [PackageInstaller]::new($this.EnvManager)
-    $this.JavaChecker = [JavaVersionChecker]::new($this.MinJavaVersion, $this.RuntimeKnownPaths, $this.RuntimeWildcardPatterns, $this.EnvManager)
-  }
-
-  [bool] IsLspInstalled() {
-    return $this.EnvManager.AnyFileExists($this.LspKnownPaths)
-  }
-
-  [bool] IsRuntimeInstalled() {
-    if ($this.EnvManager.AnyFileExists($this.RuntimeKnownPaths)) {
-      return $true
-    }
-    foreach ($pattern in $this.RuntimeWildcardPatterns) {
-      [string] $found = $this.EnvManager.FindWithWildcard($pattern)
-      if (-not [string]::IsNullOrEmpty($found)) {
-        return $true
-      }
-    }
-    return $false
-  }
-
-  [string] FindJavaExe() {
-    return $this.JavaChecker.FindJavaExe()
-  }
-
-  [bool] IsRuntimeVersionValid() {
-    return $this.JavaChecker.MeetsMinimumVersion()
-  }
-
-  [void] AddLspToPath() {
-    # Check which path has kotlin-language-server and add it
-    [string] $foundPath = $this.EnvManager.FindExistingFile($this.LspKnownPaths)
-    if (-not [string]::IsNullOrEmpty($foundPath)) {
-      [string] $binDir = Split-Path -Parent $foundPath
-      $this.EnvManager.AddToUserPath($binDir)
-    }
-    elseif (Test-Path "$($this.ManualInstallPath)\bin") {
-      $this.EnvManager.AddToUserPath("$($this.ManualInstallPath)\bin")
-    }
-    elseif (Test-Path "$($this.ManualInstallPath)\server\bin") {
-      $this.EnvManager.AddToUserPath("$($this.ManualInstallPath)\server\bin")
-    }
+  [void] AddToPath() {
+    $this.EnvManager.AddToUserPath($this.InstallDir)
     $this.EnvManager.RefreshSessionPath()
   }
 
-  [void] AddRuntimeToPath() {
-    [string] $foundPath = $this.FindJavaExe()
-    if (-not [string]::IsNullOrEmpty($foundPath)) {
-      [string] $binDir = Split-Path -Parent $foundPath
-      $this.EnvManager.AddToUserPath($binDir)
-      $this.EnvManager.RefreshSessionPath()
-    }
-  }
-
-  [bool] InstallRuntime() {
-    [int] $currentVersion = $this.JavaChecker.GetInstalledVersion()
-    
-    if ($currentVersion -eq 0) {
-      $this.EnvManager.WriteInfo("Java is not installed. Attempting to install Java $($this.MinJavaVersion)+...")
-    }
-    else {
-      $this.EnvManager.WriteWarning("Java $currentVersion found, but Java $($this.MinJavaVersion)+ is required. Installing...")
+  [bool] InstallOrUpdate() {
+    [string] $version = $this.GetLatestVersion()
+    if ([string]::IsNullOrWhiteSpace($version)) {
+      return $false
     }
 
-    # PRIMARY: winget (Microsoft OpenJDK 25 - official, secure)
-    [PackageManagerResult] $wingetResult = $this.PkgInstaller.InstallWithWinget($this.WingetJavaPackageId)
-    if ($wingetResult.Success -and $this.IsRuntimeVersionValid()) {
-      $this.AddRuntimeToPath()
-      $this.EnvManager.WriteSuccess("Java 25 installed via winget")
-      return $true
-    }
+    [string] $platformSuffix = $this.GetPlatformSuffix()
+    [string] $zipUrl = $this.GetZipUrl($version, $platformSuffix)
+    [string] $shaUrl = $this.GetShaUrl($zipUrl)
 
-    $this.EnvManager.WriteError("Could not auto-install Java $($this.MinJavaVersion)+. Please install manually:")
-    $this.EnvManager.WriteError("  winget install Microsoft.OpenJDK.25")
-    $this.EnvManager.WriteError("  Or run: winget install EclipseAdoptium.Temurin.17.JDK")
-    return $false
-  }
+    [string] $tempZip = Join-Path $env:TEMP "kotlin-lsp-$platformSuffix-$version.zip"
 
-  [bool] InstallLsp() {
-    $this.EnvManager.WriteInfo("Installing kotlin-language-server...")
-    
-    # Download directly from GitHub
-    $this.EnvManager.WriteInfo("Downloading from GitHub...")
-    [bool] $downloaded = $this.DownloadKotlinLs()
-    if ($downloaded -and $this.IsLspInstalled()) {
-      $this.AddLspToPath()
-      $this.EnvManager.WriteSuccess("kotlin-language-server installed successfully")
-      return $true
-    }
-
-    $this.EnvManager.WriteError("Failed to install kotlin-language-server. Please install manually:")
-    $this.EnvManager.WriteError("  Download from https://github.com/fwcd/kotlin-language-server/releases")
-    return $false
-  }
-
-  [bool] DownloadKotlinLs() {
+    # Try to prefer modern TLS. PowerShell 5.1 can be finicky depending on .NET defaults.
     try {
-      [string] $installDir = "$env:LOCALAPPDATA\kotlin-language-server"
-      [string] $binDir = "$installDir\server\bin"
-      
-      # Create directory
-      if (-not (Test-Path $installDir)) {
-        New-Item -ItemType Directory -Path $installDir -Force | Out-Null
-      }
-      
-      # Download latest release from GitHub
-      [string] $downloadUrl = "https://github.com/fwcd/kotlin-language-server/releases/latest/download/server.zip"
-      [string] $tempFile = "$env:TEMP\kotlin-ls.zip"
-      
-      $this.EnvManager.WriteInfo("Downloading kotlin-language-server from GitHub...")
-      Invoke-WebRequest -Uri $downloadUrl -OutFile $tempFile -UseBasicParsing -TimeoutSec 120
-      
-      # Extract (creates server/ subfolder)
-      $this.EnvManager.WriteInfo("Extracting kotlin-language-server...")
-      Expand-Archive -Path $tempFile -DestinationPath $installDir -Force
-      
-      # Clean up
-      Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
-      
-      # Add to PATH (the zip extracts to server/bin)
-      $this.EnvManager.AddToUserPath($binDir)
-      $this.EnvManager.RefreshSessionPath()
-      
-      return (Test-Path "$binDir\kotlin-language-server.bat")
+      [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    } catch {}
+
+    $this.EnvManager.WriteInfo("Downloading Kotlin LSP $version ($platformSuffix)...")
+    $this.EnvManager.WriteInfo("URL: $zipUrl")
+
+    try {
+      $ProgressPreference = 'SilentlyContinue'
+      Invoke-WebRequest -Uri $zipUrl -OutFile $tempZip -UseBasicParsing -TimeoutSec 600 -ErrorAction Stop
+      $ProgressPreference = 'Continue'
     }
     catch {
       $this.EnvManager.WriteError("Download failed: $($_.Exception.Message)")
       return $false
     }
+
+    # Best-effort SHA verification
+    [string] $expected = $this.GetExpectedSha256($shaUrl)
+    if (-not [string]::IsNullOrWhiteSpace($expected)) {
+      try {
+        [string] $actual = (Get-FileHash -Algorithm SHA256 -Path $tempZip).Hash
+        if ($actual.ToLowerInvariant() -ne $expected.ToLowerInvariant()) {
+          $this.EnvManager.WriteError("SHA-256 mismatch for downloaded kotlin-lsp zip")
+          $this.EnvManager.WriteError("Expected: $expected")
+          $this.EnvManager.WriteError("Actual:   $actual")
+          return $false
+        }
+      }
+      catch {
+        $this.EnvManager.WriteWarning("Could not compute SHA-256 (continuing): $($_.Exception.Message)")
+      }
+    }
+
+    try {
+      if (-not (Test-Path $this.InstallDir)) {
+        New-Item -ItemType Directory -Path $this.InstallDir -Force | Out-Null
+      }
+
+      $this.EnvManager.WriteInfo("Extracting to: $($this.InstallDir)")
+      Expand-Archive -Path $tempZip -DestinationPath $this.InstallDir -Force
+
+      # Record installed version (useful for debugging)
+      Set-Content -Path (Join-Path $this.InstallDir "VERSION") -Value $version -Encoding ASCII
+
+      Remove-Item $tempZip -Force -ErrorAction SilentlyContinue
+
+      if (-not $this.IsInstalled()) {
+        $this.EnvManager.WriteError("Install finished but kotlin-lsp.cmd was not found in $($this.InstallDir)")
+        return $false
+      }
+
+      $this.AddToPath()
+      $this.EnvManager.WriteSuccess("Kotlin LSP installed successfully")
+      return $true
+    }
+    catch {
+      $this.EnvManager.WriteError("Extraction failed: $($_.Exception.Message)")
+      return $false
+    }
   }
 
   [int] Run() {
-    # ALWAYS check if Java is installed with correct version first (required for kotlin-ls)
-    if (-not $this.IsRuntimeInstalled() -or -not $this.IsRuntimeVersionValid()) {
-      [bool] $runtimeInstalled = $this.InstallRuntime()
-      if (-not $runtimeInstalled) {
-        # Exit code 2: stderr shown to user for Setup hooks
-        return 2
-      }
-    }
-    else {
-      # Ensure Java is in PATH even if already installed
-      $this.AddRuntimeToPath()
-      $this.EnvManager.WriteSuccess("Java runtime detected")
-    }
-
-    # Check if LSP is already installed
-    if ($this.IsLspInstalled()) {
-      $this.AddLspToPath()
-      $this.EnvManager.WriteSuccess("kotlin-language-server is already installed")
+    if ($this.IsInstalled()) {
+      $this.AddToPath()
+      $this.EnvManager.WriteSuccess("Kotlin LSP is already installed")
       return 0
     }
 
-    # Install LSP
-    [bool] $lspInstalled = $this.InstallLsp()
-    if (-not $lspInstalled) {
+    $this.EnvManager.WriteInfo("Kotlin LSP not found. Installing...")
+    if (-not $this.InstallOrUpdate()) {
+      $this.EnvManager.WriteError("Failed to install Kotlin LSP.")
+      $this.EnvManager.WriteError("Manual download: https://github.com/Kotlin/kotlin-lsp/releases/latest")
       # Exit code 2: stderr shown to user for Setup hooks
       return 2
     }
+
     return 0
   }
 }
@@ -413,5 +251,5 @@ class KotlinLsInstaller {
 # MAIN ENTRY POINT
 # ============================================================================
 
-[KotlinLsInstaller] $installer = [KotlinLsInstaller]::new()
+[KotlinLspInstaller] $installer = [KotlinLspInstaller]::new()
 exit $installer.Run()
