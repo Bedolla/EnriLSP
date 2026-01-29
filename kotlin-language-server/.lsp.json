@@ -1,7 +1,7 @@
 {
   "kotlin-language-server": {
-    "command": "kotlin-language-server",
-    "args": [],
+    "command": "cmd.exe",
+    "args": ["/c", "kotlin-language-server"],
     "extensionToLanguage": {
       ".kt": "kotlin",
       ".kts": "kotlin"

@@ -1,7 +1,7 @@
 {
   "vtsls": {
-    "command": "vtsls",
-    "args": ["--stdio"],
+    "command": "cmd.exe",
+    "args": ["/c", "vtsls", "--stdio"],
     "extensionToLanguage": {
       ".ts": "typescript",
       ".tsx": "typescriptreact",

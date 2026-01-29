@@ -1,7 +1,7 @@
 {
   "bash-language-server": {
-    "command": "bash-language-server",
-    "args": ["start"],
+    "command": "cmd.exe",
+    "args": ["/c", "bash-language-server", "start"],
     "extensionToLanguage": {
       ".sh": "shellscript",
       ".bash": "shellscript",

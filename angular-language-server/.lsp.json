@@ -1,7 +1,7 @@
 {
   "angular-language-server": {
-    "command": "ngserver",
-    "args": ["--stdio"],
+    "command": "cmd.exe",
+    "args": ["/c", "ngserver", "--stdio"],
     "extensionToLanguage": {
       ".ts": "typescript",
       ".html": "html"

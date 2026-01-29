@@ -1,7 +1,7 @@
 {
   "cssmodules-language-server": {
-    "command": "cssmodules-language-server",
-    "args": [],
+    "command": "cmd.exe",
+    "args": ["/c", "cssmodules-language-server"],
     "extensionToLanguage": {
       ".module.css": "css",
       ".module.scss": "scss",

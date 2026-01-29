@@ -1,7 +1,7 @@
 {
   "tailwindcss-language-server": {
-    "command": "tailwindcss-language-server",
-    "args": ["--stdio"],
+    "command": "cmd.exe",
+    "args": ["/c", "tailwindcss-language-server", "--stdio"],
     "extensionToLanguage": {
       ".css": "css",
       ".html": "html",

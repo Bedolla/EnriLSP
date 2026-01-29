@@ -1,7 +1,7 @@
 {
   "vue-language-server": {
-    "command": "vue-language-server",
-    "args": ["--stdio"],
+    "command": "cmd.exe",
+    "args": ["/c", "vue-language-server", "--stdio"],
     "extensionToLanguage": {
       ".vue": "vue"
     }

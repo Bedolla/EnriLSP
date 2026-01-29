@@ -1,7 +1,7 @@
 {
   "prisma-language-server": {
-    "command": "prisma-language-server",
-    "args": ["--stdio"],
+    "command": "cmd.exe",
+    "args": ["/c", "prisma-language-server", "--stdio"],
     "extensionToLanguage": {
       ".prisma": "prisma"
     }

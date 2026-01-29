@@ -1,7 +1,7 @@
 {
   "solargraph": {
-    "command": "solargraph",
-    "args": ["stdio"],
+    "command": "cmd.exe",
+    "args": ["/c", "solargraph", "stdio"],
     "extensionToLanguage": {
       ".rb": "ruby",
       ".rake": "ruby",

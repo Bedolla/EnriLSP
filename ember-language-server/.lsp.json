@@ -1,7 +1,7 @@
 {
   "ember-language-server": {
-    "command": "ember-language-server",
-    "args": ["--stdio"],
+    "command": "cmd.exe",
+    "args": ["/c", "ember-language-server", "--stdio"],
     "extensionToLanguage": {
       ".hbs": "handlebars",
       ".js": "javascript",

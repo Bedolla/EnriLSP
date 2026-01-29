@@ -1,7 +1,7 @@
 {
   "yaml-language-server": {
-    "command": "yaml-language-server",
-    "args": ["--stdio"],
+    "command": "cmd.exe",
+    "args": ["/c", "yaml-language-server", "--stdio"],
     "extensionToLanguage": {
       ".yaml": "yaml",
       ".yml": "yaml"

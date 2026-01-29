@@ -1,7 +1,7 @@
 {
   "astro-language-server": {
-    "command": "astro-ls",
-    "args": ["--stdio"],
+    "command": "cmd.exe",
+    "args": ["/c", "astro-ls", "--stdio"],
     "extensionToLanguage": {
       ".astro": "astro"
     }

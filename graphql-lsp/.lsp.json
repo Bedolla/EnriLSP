@@ -1,7 +1,7 @@
 {
   "graphql-lsp": {
-    "command": "graphql-lsp",
-    "args": ["server", "-m", "stream"],
+    "command": "cmd.exe",
+    "args": ["/c", "graphql-lsp", "server", "-m", "stream"],
     "extensionToLanguage": {
       ".graphql": "graphql",
       ".gql": "graphql"

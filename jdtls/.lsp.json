@@ -1,7 +1,7 @@
 {
   "jdtls": {
-    "command": "jdtls",
-    "args": [],
+    "command": "cmd.exe",
+    "args": ["/c", "jdtls"],
     "extensionToLanguage": {
       ".java": "java"
     }

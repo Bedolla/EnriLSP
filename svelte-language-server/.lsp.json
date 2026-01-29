@@ -1,7 +1,7 @@
 {
   "svelte-language-server": {
-    "command": "svelteserver",
-    "args": ["--stdio"],
+    "command": "cmd.exe",
+    "args": ["/c", "svelteserver", "--stdio"],
     "extensionToLanguage": {
       ".svelte": "svelte"
     }

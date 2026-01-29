@@ -1,7 +1,7 @@
 {
   "dockerfile-language-server": {
-    "command": "docker-langserver",
-    "args": ["--stdio"],
+    "command": "cmd.exe",
+    "args": ["/c", "docker-langserver", "--stdio"],
     "extensionToLanguage": {
       ".dockerfile": "dockerfile",
       ".Dockerfile": "dockerfile"

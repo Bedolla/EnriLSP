@@ -1,7 +1,7 @@
 {
   "intelephense": {
-    "command": "intelephense",
-    "args": ["--stdio"],
+    "command": "cmd.exe",
+    "args": ["/c", "intelephense", "--stdio"],
     "extensionToLanguage": {
       ".php": "php",
       ".phtml": "php"
