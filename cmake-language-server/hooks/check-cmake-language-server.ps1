@@ -3,7 +3,10 @@
 .SYNOPSIS
     EnriLSP - CMake Language Server installer
 .DESCRIPTION
-    Checks for cmake-language-server installation and auto-installs via pip.
+    Installs cmake-language-server in a dedicated virtual environment to avoid
+    breaking changes in newer Python versions (e.g. Python 3.14 removing
+    asyncio child watchers used by older pygls stacks).
+
     Provides CMake IntelliSense support.
 .NOTES
     Author: Bedolla
@@ -23,6 +26,16 @@ class PackageManagerResult {
     $this.Success = $success
     $this.Message = $message
     $this.ManagerUsed = $managerUsed
+  }
+}
+
+class PythonCommand {
+  [string] $Exe
+  [string[]] $Args
+
+  PythonCommand([string] $exe, [string[]] $args) {
+    $this.Exe = $exe
+    $this.Args = $args
   }
 }
 
@@ -101,32 +114,79 @@ class PackageInstaller {
 class CmakeLspInstaller {
   hidden [EnvironmentManager] $EnvManager
   hidden [PackageInstaller] $PkgInstaller
+  hidden [string] $InstallRoot
+  hidden [string] $VenvDir
+  hidden [string] $VenvPython
+  hidden [string] $VenvLspExe
+  hidden [string[]] $PreferredPyLauncherArgs = @("-3.13", "-3.12")
+  hidden [string[]] $PythonKnownPaths = @(
+    "$env:LOCALAPPDATA\\Programs\\Python\\Python313\\python.exe",
+    "$env:LOCALAPPDATA\\Programs\\Python\\Python312\\python.exe",
+    "$env:ProgramFiles\\Python313\\python.exe",
+    "$env:ProgramFiles\\Python312\\python.exe"
+  )
 
   CmakeLspInstaller() {
     $this.EnvManager = [EnvironmentManager]::new("cmake-lsp")
     $this.PkgInstaller = [PackageInstaller]::new($this.EnvManager)
+    $this.InstallRoot = "$env:LOCALAPPDATA\\EnriLSP\\cmake-language-server"
+    $this.VenvDir = Join-Path $this.InstallRoot ".venv"
+    $this.VenvPython = Join-Path $this.VenvDir "Scripts\\python.exe"
+    $this.VenvLspExe = Join-Path $this.VenvDir "Scripts\\cmake-language-server.exe"
   }
 
-  [bool] IsPythonInstalled() {
-    return $this.EnvManager.CommandExists("python") -or $this.EnvManager.CommandExists("python3")
+  [PythonCommand] FindPythonCommand() {
+    if ($this.EnvManager.CommandExists("py")) {
+      foreach ($arg in $this.PreferredPyLauncherArgs) {
+        try {
+          & py $arg -c "import sys; print(sys.version_info[0], sys.version_info[1])" 2>$null | Out-Null
+          if ($LASTEXITCODE -eq 0) {
+            return [PythonCommand]::new("py", @($arg))
+          }
+        }
+        catch {}
+      }
+    }
+
+    foreach ($path in $this.PythonKnownPaths) {
+      if (Test-Path $path -PathType Leaf) {
+        return [PythonCommand]::new($path, @())
+      }
+    }
+
+    if ($this.EnvManager.CommandExists("python")) {
+      try {
+        [string] $ver = (& python -c "import sys; print(f'{sys.version_info[0]}.{sys.version_info[1]}')" 2>$null).Trim()
+        if ($LASTEXITCODE -eq 0 -and $ver -match '^3\.(12|13)$') {
+          return [PythonCommand]::new("python", @())
+        }
+      }
+      catch {}
+    }
+
+    return $null
   }
 
   [bool] IsLspInstalled() {
-    $this.EnvManager.RefreshSessionPath()
-    return $this.EnvManager.CommandExists("cmake-language-server")
+    return (Test-Path $this.VenvLspExe -PathType Leaf)
   }
 
-  [string] GetPythonCommand() {
-    if ($this.EnvManager.CommandExists("python")) {
-      return "python"
+  [bool] EnsureInstallRoot() {
+    try {
+      if (-not (Test-Path $this.InstallRoot)) {
+        New-Item -ItemType Directory -Path $this.InstallRoot -Force | Out-Null
+      }
+      return $true
     }
-    return "python3"
+    catch {
+      $this.EnvManager.WriteError("Failed to create install dir: $($_.Exception.Message)")
+      return $false
+    }
   }
 
   [bool] InstallPython() {
-    $this.EnvManager.WriteInfo("Python not found. Installing...")
-    # Use Python 3.14 (latest stable, consistent with pyright plugin)
-    [PackageManagerResult] $result = $this.PkgInstaller.InstallWithWinget("Python.Python.3.14", "Python 3.14")
+    $this.EnvManager.WriteInfo("Python 3.13/3.12 not found. Installing Python 3.13...")
+    [PackageManagerResult] $result = $this.PkgInstaller.InstallWithWinget("Python.Python.3.13", "Python 3.13")
     
     if ($result.Success) {
       $this.EnvManager.WriteSuccess($result.Message)
@@ -135,36 +195,59 @@ class CmakeLspInstaller {
     }
     
     $this.EnvManager.WriteError("Failed to install Python. Please install manually.")
+    $this.EnvManager.WriteError("  winget install Python.Python.3.13")
     return $false
   }
 
-  [bool] InstallLsp() {
-    [string] $python = $this.GetPythonCommand()
-    $this.EnvManager.WriteInfo("Installing cmake-language-server via pip...")
-    
+  [bool] EnsureVenv([PythonCommand] $pythonCommand) {
+    if (-not $this.EnsureInstallRoot()) {
+      return $false
+    }
+
+    if (Test-Path $this.VenvPython -PathType Leaf) {
+      return $true
+    }
+
+    $this.EnvManager.WriteInfo("Creating venv: $($this.VenvDir)")
     try {
-      & $python -m pip install --user "cmake-language-server" 2>&1 | Out-Null
-      if ($LASTEXITCODE -eq 0) {
-        # Add Python Scripts to PATH - find the correct Python version
-        [string[]] $pythonPaths = @(
-          "$env:APPDATA\Python\Python314\Scripts",
-          "$env:APPDATA\Python\Python313\Scripts",
-          "$env:APPDATA\Python\Python312\Scripts",
-          "$env:APPDATA\Python\Python311\Scripts"
-        )
-        foreach ($path in $pythonPaths) {
-          if (Test-Path $path) {
-            $this.EnvManager.AddToUserPath($path)
-            break
-          }
-        }
-        $this.EnvManager.RefreshSessionPath()
+      & $pythonCommand.Exe @($pythonCommand.Args) -m venv $this.VenvDir 2>&1 | Out-Null
+      return (Test-Path $this.VenvPython -PathType Leaf)
+    }
+    catch {
+      $this.EnvManager.WriteError("Failed to create venv: $($_.Exception.Message)")
+      return $false
+    }
+  }
+
+  [bool] InstallLsp() {
+    [PythonCommand] $pythonCommand = $this.FindPythonCommand()
+    if ($null -eq $pythonCommand) {
+      if (-not $this.InstallPython()) {
+        return $false
+      }
+      $pythonCommand = $this.FindPythonCommand()
+    }
+
+    if ($null -eq $pythonCommand) {
+      $this.EnvManager.WriteError("Python is still not available after install attempt.")
+      return $false
+    }
+
+    if (-not $this.EnsureVenv($pythonCommand)) {
+      return $false
+    }
+
+    $this.EnvManager.WriteInfo("Installing cmake-language-server in venv...")
+    try {
+      & $this.VenvPython -m pip install -U pip 2>&1 | Out-Null
+      & $this.VenvPython -m pip install "cmake-language-server" 2>&1 | Out-Null
+      if (Test-Path $this.VenvLspExe -PathType Leaf) {
         $this.EnvManager.WriteSuccess("cmake-language-server installed successfully")
         return $true
       }
     }
     catch {
-      $this.EnvManager.WriteError("pip install failed: $_")
+      $this.EnvManager.WriteError("pip install failed: $($_.Exception.Message)")
     }
     return $false
   }
@@ -175,16 +258,15 @@ class CmakeLspInstaller {
       return 0
     }
 
-    if (-not $this.IsPythonInstalled()) {
-      if (-not $this.InstallPython()) {
-        # Exit code 2: stderr shown to user for Setup hooks
-        return 2
-      }
-    }
-
     if (-not $this.InstallLsp()) {
       $this.EnvManager.WriteError("Failed to install. Please run manually:")
-      $this.EnvManager.WriteError("  pip install --user cmake-language-server")
+      $this.EnvManager.WriteError("  winget install Python.Python.3.13")
+      $this.EnvManager.WriteError("  python -m pip install cmake-language-server")
+      $this.EnvManager.WriteError("")
+      $this.EnvManager.WriteError("Then ensure the venv exists at:")
+      $this.EnvManager.WriteError("  $($this.VenvDir)")
+      # Exit code 2: stderr shown to user for Setup hooks
+      return 2
     }
     return 0
   }

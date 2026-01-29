@@ -119,10 +119,34 @@ class ZlsInstaller {
   )
   hidden [string] $WingetPackageId = "zig.zls"
   hidden [string] $GitHubReleaseApi = "https://api.github.com/repos/zigtools/zls/releases/latest"
+  hidden [string] $ProxySourcePath
+  hidden [string] $ProxyDestDir = "$env:LOCALAPPDATA\EnriLSP\bin"
+  hidden [string] $ProxyDestPath = "$env:LOCALAPPDATA\EnriLSP\bin\enrilsp-lsp-proxy.ps1"
 
   ZlsInstaller() {
     $this.EnvManager = [EnvironmentManager]::new("zls")
     $this.PkgInstaller = [PackageInstaller]::new($this.EnvManager)
+    $this.ProxySourcePath = Join-Path $PSScriptRoot "enrilsp-lsp-proxy.ps1"
+  }
+
+  [bool] EnsureProxyInstalled() {
+    try {
+      if (-not (Test-Path $this.ProxyDestDir)) {
+        New-Item -ItemType Directory -Path $this.ProxyDestDir -Force | Out-Null
+      }
+
+      if (Test-Path $this.ProxySourcePath -PathType Leaf) {
+        Copy-Item -Path $this.ProxySourcePath -Destination $this.ProxyDestPath -Force
+        return (Test-Path $this.ProxyDestPath -PathType Leaf)
+      }
+
+      $this.EnvManager.WriteError("Proxy source not found: $($this.ProxySourcePath)")
+      return $false
+    }
+    catch {
+      $this.EnvManager.WriteError("Failed to install EnriLSP proxy: $($_.Exception.Message)")
+      return $false
+    }
   }
 
   [bool] IsLspInstalled() {
@@ -138,6 +162,47 @@ class ZlsInstaller {
       }
     }
     return $false
+  }
+
+  [string] FindInstalledExe() {
+    foreach ($path in $this.LspKnownPaths) {
+      if ($path -match '\*') {
+        $found = Get-ChildItem -Path $path -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($null -ne $found) {
+          return $found.FullName
+        }
+      }
+      elseif (Test-Path $path -PathType Leaf) {
+        return $path
+      }
+    }
+    return ""
+  }
+
+  [bool] EnsureStableInstall() {
+    try {
+      [string] $target = Join-Path $this.InstallDir "zls.exe"
+      if (Test-Path $target -PathType Leaf) {
+        return $true
+      }
+
+      [string] $found = $this.FindInstalledExe()
+      if ([string]::IsNullOrWhiteSpace($found)) {
+        $this.EnvManager.WriteError("zls executable not found after install")
+        return $false
+      }
+
+      if (-not (Test-Path $this.InstallDir)) {
+        New-Item -ItemType Directory -Path $this.InstallDir -Force | Out-Null
+      }
+
+      Copy-Item -Path $found -Destination $target -Force
+      return (Test-Path $target -PathType Leaf)
+    }
+    catch {
+      $this.EnvManager.WriteError("Failed to ensure stable zls install: $($_.Exception.Message)")
+      return $false
+    }
   }
 
   [void] AddLspToPath() {
@@ -234,14 +299,27 @@ class ZlsInstaller {
   }
 
   [int] Run() {
+    if (-not $this.EnsureProxyInstalled()) {
+      # Exit code 2: stderr shown to user for Setup hooks
+      return 2
+    }
+
     if ($this.IsLspInstalled()) {
       $this.AddLspToPath()
+      if (-not $this.EnsureStableInstall()) {
+        # Exit code 2: stderr shown to user for Setup hooks
+        return 2
+      }
       $this.EnvManager.WriteSuccess("zls is already installed")
       return 0
     }
 
     [bool] $lspInstalled = $this.InstallLsp()
     if (-not $lspInstalled) {
+      # Exit code 2: stderr shown to user for Setup hooks
+      return 2
+    }
+    if (-not $this.EnsureStableInstall()) {
       # Exit code 2: stderr shown to user for Setup hooks
       return 2
     }

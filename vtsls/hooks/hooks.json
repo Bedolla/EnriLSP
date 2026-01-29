@@ -1,9 +1,9 @@
 {
   "description": "Check for vtsls installation on init",
   "hooks": {
-    "SessionStart": [
+    "Setup": [
       {
-        "matcher": "*",
+        "matcher": "init",
         "hooks": [
           {
             "type": "command",

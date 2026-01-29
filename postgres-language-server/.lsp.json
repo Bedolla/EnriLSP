@@ -1,7 +1,10 @@
 {
   "postgres-language-server": {
-    "command": "postgres-language-server",
-    "args": ["lsp-proxy"],
+    "command": "cmd.exe",
+    "args": [
+      "/c",
+      "set PGLS_LOG_PATH=%TEMP%\\pgls-logs&& if not exist \"%TEMP%\\pgls-logs\" mkdir \"%TEMP%\\pgls-logs\"&& \"%LOCALAPPDATA%\\postgres-language-server\\postgres-language-server.exe\" lsp-proxy"
+    ],
     "extensionToLanguage": {
       ".sql": "sql",
       ".pgsql": "sql"

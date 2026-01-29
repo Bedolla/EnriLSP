@@ -1,9 +1,9 @@
 {
   "description": "Check for terraform-ls installation on init",
   "hooks": {
-    "SessionStart": [
+    "Setup": [
       {
-        "matcher": "*",
+        "matcher": "init",
         "hooks": [
           {
             "type": "command",

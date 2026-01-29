@@ -1,7 +1,7 @@
 {
   "cmake-language-server": {
-    "command": "cmake-language-server",
-    "args": [],
+    "command": "cmd.exe",
+    "args": ["/c", "%LOCALAPPDATA%\\EnriLSP\\cmake-language-server\\.venv\\Scripts\\cmake-language-server.exe"],
     "extensionToLanguage": {
       ".cmake": "cmake"
     }

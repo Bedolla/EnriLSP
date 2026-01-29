@@ -1,7 +1,10 @@
 {
   "jdtls": {
     "command": "cmd.exe",
-    "args": ["/c", "jdtls"],
+    "args": [
+      "/c",
+      "powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File \"%LOCALAPPDATA%\\EnriLSP\\bin\\enrilsp-lsp-proxy.ps1\" \"%LOCALAPPDATA%\\jdtls\\bin\\jdtls.bat\""
+    ],
     "extensionToLanguage": {
       ".java": "java"
     }

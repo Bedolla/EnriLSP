@@ -1,7 +1,10 @@
 {
   "texlab": {
-    "command": "texlab",
-    "args": [],
+    "command": "cmd.exe",
+    "args": [
+      "/c",
+      "powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File \"%LOCALAPPDATA%\\EnriLSP\\bin\\enrilsp-lsp-proxy.ps1\" \"%LOCALAPPDATA%\\texlab\\texlab.exe\""
+    ],
     "extensionToLanguage": {
       ".tex": "latex",
       ".bib": "bibtex"

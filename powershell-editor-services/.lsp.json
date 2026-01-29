@@ -1,7 +1,23 @@
 {
   "powershell-editor-services": {
     "command": "pwsh",
-    "args": ["-NoLogo", "-NoProfile", "-Command", "Import-Module PowerShellEditorServices; Start-EditorServices -HostName 'Claude Code' -HostProfileId 'claude' -HostVersion '1.0.0' -BundledModulesPath $env:APPDATA/PowerShellEditorServices -Stdio"],
+    "args": [
+      "-NoLogo",
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      "$env:LOCALAPPDATA/PowerShellEditorServices/PowerShellEditorServices/Start-EditorServices.ps1",
+      "-HostName",
+      "Claude Code",
+      "-HostProfileId",
+      "claude",
+      "-HostVersion",
+      "1.0.0",
+      "-BundledModulesPath",
+      "$env:LOCALAPPDATA/PowerShellEditorServices/PowerShellEditorServices",
+      "-Stdio"
+    ],
     "extensionToLanguage": {
       ".ps1": "powershell",
       ".psm1": "powershell",

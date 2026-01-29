@@ -1,7 +1,10 @@
 {
   "terraform-ls": {
-    "command": "terraform-ls",
-    "args": ["serve"],
+    "command": "cmd.exe",
+    "args": [
+      "/c",
+      "powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File \"%LOCALAPPDATA%\\EnriLSP\\bin\\enrilsp-lsp-proxy.ps1\" \"%LOCALAPPDATA%\\terraform-ls\\terraform-ls.exe\" serve"
+    ],
     "extensionToLanguage": {
       ".tf": "terraform",
       ".tfvars": "terraform"

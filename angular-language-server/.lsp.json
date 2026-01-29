@@ -3,7 +3,7 @@
     "command": "cmd.exe",
     "args": [
       "/c",
-      "ngserver",
+      "%APPDATA%\\npm\\ngserver.cmd",
       "--stdio",
       "--tsProbeLocations",
       "%APPDATA%\\npm\\node_modules",

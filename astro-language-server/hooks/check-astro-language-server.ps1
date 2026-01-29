@@ -102,10 +102,16 @@ class AstroLspInstaller {
   hidden [EnvironmentManager] $EnvManager
   hidden [PackageInstaller] $PkgInstaller
   hidden [string] $NpmBinPath = "$env:APPDATA\npm"
+  hidden [string] $AstroLsPath = "$env:APPDATA\npm\astro-ls.cmd"
+  hidden [string] $TypeScriptLibPath = "$env:APPDATA\npm\node_modules\typescript\lib\tsserverlibrary.js"
+  hidden [string] $ProxySourcePath
+  hidden [string] $ProxyDestDir = "$env:LOCALAPPDATA\EnriLSP\bin"
+  hidden [string] $ProxyDestPath = "$env:LOCALAPPDATA\EnriLSP\bin\enrilsp-lsp-proxy.ps1"
 
   AstroLspInstaller() {
     $this.EnvManager = [EnvironmentManager]::new("astro-lsp")
     $this.PkgInstaller = [PackageInstaller]::new($this.EnvManager)
+    $this.ProxySourcePath = Join-Path $PSScriptRoot "enrilsp-lsp-proxy.ps1"
   }
 
   [bool] IsNodeInstalled() {
@@ -113,8 +119,26 @@ class AstroLspInstaller {
   }
 
   [bool] IsLspInstalled() {
-    $this.EnvManager.RefreshSessionPath()
-    return $this.EnvManager.CommandExists("astro-ls")
+    return (Test-Path $this.AstroLsPath -PathType Leaf) -and (Test-Path $this.TypeScriptLibPath -PathType Leaf)
+  }
+
+  [bool] EnsureProxyInstalled() {
+    try {
+      if (-not (Test-Path $this.ProxyDestDir)) {
+        New-Item -ItemType Directory -Path $this.ProxyDestDir -Force | Out-Null
+      }
+
+      if (Test-Path $this.ProxySourcePath -PathType Leaf) {
+        Copy-Item -Path $this.ProxySourcePath -Destination $this.ProxyDestPath -Force
+        return (Test-Path $this.ProxyDestPath -PathType Leaf)
+      }
+      $this.EnvManager.WriteError("Proxy source not found: $($this.ProxySourcePath)")
+      return $false
+    }
+    catch {
+      $this.EnvManager.WriteError("Failed to install EnriLSP proxy: $($_.Exception.Message)")
+      return $false
+    }
   }
 
   [bool] InstallNode() {
@@ -132,15 +156,17 @@ class AstroLspInstaller {
   }
 
   [bool] InstallLsp() {
-    $this.EnvManager.WriteInfo("Installing @astrojs/language-server via npm...")
+    $this.EnvManager.WriteInfo("Installing @astrojs/language-server + typescript via npm...")
     
     try {
-      & npm install -g "@astrojs/language-server" 2>&1 | Out-Null
+      & npm install -g "@astrojs/language-server" "typescript" 2>&1 | Out-Null
       if ($LASTEXITCODE -eq 0) {
         $this.EnvManager.AddToUserPath($this.NpmBinPath)
         $this.EnvManager.RefreshSessionPath()
-        $this.EnvManager.WriteSuccess("@astrojs/language-server installed successfully")
-        return $true
+        if ($this.IsLspInstalled()) {
+          $this.EnvManager.WriteSuccess("@astrojs/language-server installed successfully")
+          return $true
+        }
       }
     }
     catch {
@@ -150,6 +176,11 @@ class AstroLspInstaller {
   }
 
   [int] Run() {
+    if (-not $this.EnsureProxyInstalled()) {
+      # Exit code 2: stderr shown to user for Setup hooks
+      return 2
+    }
+
     if ($this.IsLspInstalled()) {
       $this.EnvManager.WriteSuccess("astro-ls is already installed")
       return 0
@@ -164,7 +195,9 @@ class AstroLspInstaller {
 
     if (-not $this.InstallLsp()) {
       $this.EnvManager.WriteError("Failed to install. Please run manually:")
-      $this.EnvManager.WriteError("  npm install -g @astrojs/language-server")
+      $this.EnvManager.WriteError("  npm install -g @astrojs/language-server typescript")
+      # Exit code 2: stderr shown to user for Setup hooks
+      return 2
     }
     return 0
   }

@@ -240,12 +240,36 @@ class JdtlsInstaller {
   )
   # Install LATEST Microsoft Build of OpenJDK 25 (official, secure)
   hidden [string] $WingetJavaPackageId = "Microsoft.OpenJDK.25"
+  hidden [string] $ProxySourcePath
+  hidden [string] $ProxyDestDir = "$env:LOCALAPPDATA\EnriLSP\bin"
+  hidden [string] $ProxyDestPath = "$env:LOCALAPPDATA\EnriLSP\bin\enrilsp-lsp-proxy.ps1"
 
   JdtlsInstaller() {
     $this.EnvManager = [EnvironmentManager]::new("jdtls")
     $this.PkgInstaller = [PackageInstaller]::new($this.EnvManager)
     # Pass wildcard patterns to JavaVersionChecker
     $this.JavaChecker = [JavaVersionChecker]::new($this.MinJavaVersion, $this.RuntimeKnownPaths, $this.RuntimeWildcardPatterns, $this.EnvManager)
+    $this.ProxySourcePath = Join-Path $PSScriptRoot "enrilsp-lsp-proxy.ps1"
+  }
+
+  [bool] EnsureProxyInstalled() {
+    try {
+      if (-not (Test-Path $this.ProxyDestDir)) {
+        New-Item -ItemType Directory -Path $this.ProxyDestDir -Force | Out-Null
+      }
+
+      if (Test-Path $this.ProxySourcePath -PathType Leaf) {
+        Copy-Item -Path $this.ProxySourcePath -Destination $this.ProxyDestPath -Force
+        return (Test-Path $this.ProxyDestPath -PathType Leaf)
+      }
+
+      $this.EnvManager.WriteError("Proxy source not found: $($this.ProxySourcePath)")
+      return $false
+    }
+    catch {
+      $this.EnvManager.WriteError("Failed to install EnriLSP proxy: $($_.Exception.Message)")
+      return $false
+    }
   }
 
   [bool] IsLspInstalled() {
@@ -415,6 +439,11 @@ class JdtlsInstaller {
   }
 
   [int] Run() {
+    if (-not $this.EnsureProxyInstalled()) {
+      # Exit code 2: stderr shown to user for Setup hooks
+      return 2
+    }
+
     # ALWAYS check if Java is installed with correct version first (required for jdtls)
     if (-not $this.IsRuntimeInstalled() -or -not $this.IsRuntimeVersionValid()) {
       [bool] $runtimeInstalled = $this.InstallRuntime()

@@ -1,7 +1,10 @@
 {
   "astro-language-server": {
     "command": "cmd.exe",
-    "args": ["/c", "astro-ls", "--stdio"],
+    "args": [
+      "/c",
+      "set ENRILSP_TSDK_PATH=%APPDATA%\\npm\\node_modules\\typescript\\lib&& powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File \"%LOCALAPPDATA%\\EnriLSP\\bin\\enrilsp-lsp-proxy.ps1\" \"%APPDATA%\\npm\\astro-ls.cmd\" --stdio"
+    ],
     "extensionToLanguage": {
       ".astro": "astro"
     }
