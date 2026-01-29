@@ -1,9 +1,14 @@
 {
   "terraform-ls": {
-    "command": "cmd.exe",
+    "command": "powershell.exe",
     "args": [
-      "/c",
-      "powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File \"%LOCALAPPDATA%\\EnriLSP\\bin\\enrilsp-lsp-proxy.ps1\" \"%LOCALAPPDATA%\\terraform-ls\\terraform-ls.exe\" serve"
+      "-NoLogo",
+      "-NoProfile",
+      "-NonInteractive",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command",
+      "$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';$proxy=[IO.Path]::Combine($env:LOCALAPPDATA,'EnriLSP','bin','enrilsp-lsp-proxy.ps1');$server=[IO.Path]::Combine($env:LOCALAPPDATA,'terraform-ls','terraform-ls.exe');for($i=0;$i -lt 480 -and -not (Test-Path $server);$i++){Start-Sleep -Milliseconds 250};if(-not (Test-Path $server)){exit 127};if(Test-Path $proxy){& $proxy $server 'serve'}else{& $server 'serve'}"
     ],
     "extensionToLanguage": {
       ".tf": "terraform",

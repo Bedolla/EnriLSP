@@ -1,9 +1,14 @@
 {
   "jdtls": {
-    "command": "cmd.exe",
+    "command": "powershell.exe",
     "args": [
-      "/c",
-      "powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File \"%LOCALAPPDATA%\\EnriLSP\\bin\\enrilsp-lsp-proxy.ps1\" \"%LOCALAPPDATA%\\jdtls\\bin\\jdtls.bat\""
+      "-NoLogo",
+      "-NoProfile",
+      "-NonInteractive",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command",
+      "$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';$proxy=[IO.Path]::Combine($env:LOCALAPPDATA,'EnriLSP','bin','enrilsp-lsp-proxy.ps1');$server=[IO.Path]::Combine($env:LOCALAPPDATA,'jdtls','bin','jdtls.bat');for($i=0;$i -lt 480 -and -not (Test-Path $server);$i++){Start-Sleep -Milliseconds 250};if(-not (Test-Path $server)){exit 127};if(Test-Path $proxy){& $proxy $server}else{& $server}"
     ],
     "extensionToLanguage": {
       ".java": "java"
