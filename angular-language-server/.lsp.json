@@ -1,7 +1,15 @@
 {
   "angular-language-server": {
     "command": "cmd.exe",
-    "args": ["/c", "ngserver", "--stdio"],
+    "args": [
+      "/c",
+      "ngserver",
+      "--stdio",
+      "--tsProbeLocations",
+      "%APPDATA%\\npm\\node_modules",
+      "--ngProbeLocations",
+      "%APPDATA%\\npm\\node_modules"
+    ],
     "extensionToLanguage": {
       ".ts": "typescript",
       ".html": "html"

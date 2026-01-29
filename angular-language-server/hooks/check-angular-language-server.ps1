@@ -102,10 +102,23 @@ class AngularLspInstaller {
   hidden [EnvironmentManager] $EnvManager
   hidden [PackageInstaller] $PkgInstaller
   hidden [string] $NpmBinPath = "$env:APPDATA\npm"
+  hidden [string] $GlobalNodeModulesPath = (Join-Path $env:APPDATA "npm\node_modules")
 
   AngularLspInstaller() {
     $this.EnvManager = [EnvironmentManager]::new("angular-lsp")
     $this.PkgInstaller = [PackageInstaller]::new($this.EnvManager)
+  }
+
+  [bool] PackageFolderExists([string] $relativePath) {
+    return Test-Path (Join-Path $this.GlobalNodeModulesPath $relativePath) -PathType Container
+  }
+
+  [bool] AreDependenciesInstalled() {
+    # ngserver requires explicit probe locations for both TypeScript and @angular/language-service
+    return (
+      $this.PackageFolderExists("typescript") -and
+      $this.PackageFolderExists("@angular\\language-service")
+    )
   }
 
   [bool] IsInstalled() {
@@ -133,7 +146,7 @@ class AngularLspInstaller {
       return $false
     }
 
-    $this.EnvManager.WriteInfo("Installing @angular/language-server via npm...")
+    $this.EnvManager.WriteInfo("Installing Angular LSP dependencies via npm...")
 
     try {
       $npmPath = (Get-Command npm -ErrorAction SilentlyContinue).Source
@@ -142,11 +155,12 @@ class AngularLspInstaller {
         return $false
       }
 
-      & $npmPath install -g "@angular/language-server" 2>&1 | Out-Null
+      # ngserver needs TypeScript and @angular/language-service. Install all globally to avoid per-project setup.
+      & $npmPath install -g "@angular/language-server" "@angular/language-service" "typescript" 2>&1 | Out-Null
       if ($LASTEXITCODE -eq 0) {
         $this.EnvManager.AddToUserPath($this.NpmBinPath)
         $this.EnvManager.RefreshSessionPath()
-        $this.EnvManager.WriteSuccess("@angular/language-server installed successfully")
+        $this.EnvManager.WriteSuccess("Angular language server installed successfully")
         return $true
       }
     }
@@ -158,6 +172,18 @@ class AngularLspInstaller {
 
   [int] Run() {
     if ($this.IsInstalled()) {
+      # Ensure ngserver is reachable from PATH
+      $this.EnvManager.AddToUserPath($this.NpmBinPath)
+      $this.EnvManager.RefreshSessionPath()
+
+      # Ensure required global deps exist (typescript + @angular/language-service)
+      if (-not $this.AreDependenciesInstalled()) {
+        $this.EnvManager.WriteInfo("Missing dependencies detected. Repairing global install...")
+        if (-not $this.Install()) {
+          $this.EnvManager.WriteError("Dependency installation failed")
+          return 2
+        }
+      }
       $this.EnvManager.WriteSuccess("Angular Language Server is ready")
       return 0
     }
