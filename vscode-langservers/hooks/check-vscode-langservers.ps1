@@ -143,9 +143,13 @@ class PackageInstaller {
 
   [PackageManagerResult] InstallWithNpm([string[]] $packageNames) {
     $this.EnvManager.WriteInfo("Installing via npm...")
+    $npmPath = (Get-Command npm -ErrorAction SilentlyContinue).Source
+    if (-not $npmPath) {
+      return [PackageManagerResult]::new($false, "npm not found in PATH", "npm")
+    }
     [bool] $allSuccess = $true
     foreach ($pkg in $packageNames) {
-      & npm install -g $pkg 2>&1 | Out-Null
+      & $npmPath install -g $pkg 2>&1 | Out-Null
       if ($LASTEXITCODE -ne 0) {
         $allSuccess = $false
       }
@@ -162,13 +166,17 @@ class VscodeHtmlCssInstaller {
   hidden [EnvironmentManager] $EnvManager
   hidden [PackageInstaller] $PkgInstaller
   hidden [string] $NpmGlobalPath = "$env:APPDATA\npm"
-  hidden [string[]] $LspKnownPaths = @(
-    # Modern package: vscode-langservers-extracted (2024+)
+  hidden [string[]] $RequiredLspPaths = @(
     "$env:APPDATA\npm\vscode-html-language-server.cmd",
     "$env:APPDATA\npm\vscode-css-language-server.cmd",
-    # Legacy packages: vscode-*-languageserver-bin (deprecated, last updated 2019)
+    "$env:APPDATA\npm\vscode-json-language-server.cmd",
+    "$env:APPDATA\npm\vscode-eslint-language-server.cmd"
+  )
+  hidden [string[]] $LegacyLspPaths = @(
+    # Legacy packages (deprecated, last updated 2019-ish)
     "$env:APPDATA\npm\html-languageserver.cmd",
-    "$env:APPDATA\npm\css-languageserver.cmd"
+    "$env:APPDATA\npm\css-languageserver.cmd",
+    "$env:APPDATA\npm\vscode-json-languageserver.cmd"
   )
   hidden [string[]] $RuntimeKnownPaths = @(
     "C:\Program Files\nodejs\npm.cmd",
@@ -183,7 +191,12 @@ class VscodeHtmlCssInstaller {
   }
 
   [bool] IsLspInstalled() {
-    return $this.EnvManager.AnyFileExists($this.LspKnownPaths)
+    foreach ($path in $this.RequiredLspPaths) {
+      if (-not (Test-Path $path -PathType Leaf)) {
+        return $false
+      }
+    }
+    return $true
   }
 
   [bool] IsRuntimeInstalled() {
@@ -243,6 +256,9 @@ class VscodeHtmlCssInstaller {
 
     $this.EnvManager.WriteError("Failed to install HTML/CSS language servers. Please run manually:")
     $this.EnvManager.WriteError("  npm install -g vscode-langservers-extracted")
+    if ($this.EnvManager.AnyFileExists($this.LegacyLspPaths)) {
+      $this.EnvManager.WriteError("Detected legacy vscode HTML/CSS servers installed, but EnriLSP uses the modern 'vscode-langservers-extracted' package.")
+    }
     return $false
   }
 
@@ -262,6 +278,10 @@ class VscodeHtmlCssInstaller {
         # Exit code 2: stderr shown to user for Setup hooks
         return 2
       }
+    }
+    else {
+      # Ensure npm is reachable even when Node is already present
+      $this.AddRuntimeToPath()
     }
 
     # Install LSP
