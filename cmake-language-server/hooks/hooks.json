@@ -8,7 +8,7 @@
           {
             "type": "command",
             "command": "powershell -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/hooks/check-cmake-language-server.ps1\"",
-            "timeout": 120
+            "timeout": 300
           }
         ]
       }

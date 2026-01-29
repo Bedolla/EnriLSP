@@ -129,6 +129,7 @@ class CmakeLspInstaller {
     "$env:ProgramFiles\\Python313\\python.exe",
     "$env:ProgramFiles\\Python312\\python.exe"
   )
+  hidden [string[]] $CmakeBinCandidates
 
   CmakeLspInstaller() {
     $this.EnvManager = [EnvironmentManager]::new("cmake-lsp")
@@ -137,6 +138,13 @@ class CmakeLspInstaller {
     $this.VenvDir = Join-Path $this.InstallRoot ".venv"
     $this.VenvPython = Join-Path $this.VenvDir "Scripts\\python.exe"
     $this.VenvLspExe = Join-Path $this.VenvDir "Scripts\\cmake-language-server.exe"
+
+    $programFilesX86 = [System.Environment]::GetFolderPath('ProgramFilesX86')
+    $this.CmakeBinCandidates = @(
+      (Join-Path $env:LOCALAPPDATA "Programs\\CMake\\bin"),
+      (Join-Path $env:ProgramFiles "CMake\\bin"),
+      (Join-Path $programFilesX86 "CMake\\bin")
+    ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
   }
 
   [string] GetVenvPythonVersion() {
@@ -269,6 +277,51 @@ class CmakeLspInstaller {
     return $false
   }
 
+  [bool] EnsureCmake() {
+    $this.EnvManager.RefreshSessionPath()
+    if ($this.EnvManager.CommandExists("cmake")) {
+      return $true
+    }
+
+    # Try common install locations before attempting winget.
+    foreach ($binPath in $this.CmakeBinCandidates) {
+      if (-not [string]::IsNullOrWhiteSpace($binPath) -and (Test-Path (Join-Path $binPath "cmake.exe") -PathType Leaf)) {
+        $this.EnvManager.AddToUserPath($binPath)
+        $this.EnvManager.RefreshSessionPath()
+        if ($this.EnvManager.CommandExists("cmake")) {
+          return $true
+        }
+      }
+    }
+
+    $this.EnvManager.WriteInfo("CMake not found. Installing CMake via winget...")
+    [PackageManagerResult] $result = $this.PkgInstaller.InstallWithWinget("Kitware.CMake", "CMake")
+    if ($result.Success) {
+      $this.EnvManager.WriteSuccess($result.Message)
+      $this.EnvManager.RefreshSessionPath()
+
+      # Try common locations again (some installs won't update PATH for this session)
+      foreach ($binPath in $this.CmakeBinCandidates) {
+        if (-not [string]::IsNullOrWhiteSpace($binPath) -and (Test-Path (Join-Path $binPath "cmake.exe") -PathType Leaf)) {
+          $this.EnvManager.AddToUserPath($binPath)
+          $this.EnvManager.RefreshSessionPath()
+          break
+        }
+      }
+
+      if ($this.EnvManager.CommandExists("cmake")) {
+        return $true
+      }
+
+      $this.EnvManager.WriteWarning("CMake installed but not visible in PATH yet. Restart Claude Code to pick up PATH changes.")
+      return $true
+    }
+
+    $this.EnvManager.WriteError("Failed to install CMake. Please install manually:")
+    $this.EnvManager.WriteError("  winget install --id Kitware.CMake -e --scope user")
+    return $false
+  }
+
   [bool] EnsureVenv([PythonCommand] $pythonCommand) {
     if (-not $this.EnsureInstallRoot()) {
       return $false
@@ -336,6 +389,11 @@ class CmakeLspInstaller {
   }
 
   [int] Run() {
+    if (-not $this.EnsureCmake()) {
+      # Exit code 2: stderr shown to user for Setup hooks
+      return 2
+    }
+
     if ($this.IsLspInstalled()) {
       $this.EnvManager.WriteSuccess("cmake-language-server is already installed")
       return 0
