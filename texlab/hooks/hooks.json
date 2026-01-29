@@ -1,9 +1,9 @@
 {
   "description": "Check for texlab installation on init",
   "hooks": {
-    "Setup": [
+    "SessionStart": [
       {
-        "matcher": "init",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",

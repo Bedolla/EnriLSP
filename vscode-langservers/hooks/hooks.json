@@ -1,9 +1,9 @@
 {
   "description": "Check for vscode-langservers-extracted (HTML/CSS/JSON/ESLint) installation on init",
   "hooks": {
-    "Setup": [
+    "SessionStart": [
       {
-        "matcher": "init",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
