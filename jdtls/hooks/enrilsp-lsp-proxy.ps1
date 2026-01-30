@@ -136,6 +136,49 @@ function Try-InjectTsdk([psobject] $message) {
   }
 }
 
+function Normalize-InitializeClientCapabilities([psobject] $message) {
+  if ($null -eq $message) {
+    return
+  }
+
+  if (-not ($message.PSObject.Properties["method"] -and $message.method -eq "initialize")) {
+    return
+  }
+
+  $paramsProp = $message.PSObject.Properties["params"]
+  if ($null -eq $paramsProp -or -not ($paramsProp.Value -is [psobject])) {
+    return
+  }
+
+  $capsProp = $paramsProp.Value.PSObject.Properties["capabilities"]
+  if ($null -eq $capsProp -or -not ($capsProp.Value -is [psobject])) {
+    return
+  }
+
+  $generalProp = $capsProp.Value.PSObject.Properties["general"]
+  if ($null -eq $generalProp -or -not ($generalProp.Value -is [psobject])) {
+    return
+  }
+
+  $general = $generalProp.Value
+
+  # Claude Code on Windows has been observed sending a string instead of a string[] for
+  # capabilities.general.positionEncodings. Some servers (e.g. texlab) reject this.
+  $posEnc = $general.PSObject.Properties["positionEncodings"]
+  if ($posEnc -and $posEnc.Value -is [string]) {
+    $general.positionEncodings = @($posEnc.Value)
+  }
+
+  # Some clients use the singular form; normalize to the plural, array form.
+  $posEncSingle = $general.PSObject.Properties["positionEncoding"]
+  if ($posEncSingle -and $posEncSingle.Value -is [string]) {
+    if (-not $general.PSObject.Properties["positionEncodings"] -or $null -eq $general.positionEncodings) {
+      $general.positionEncodings = @($posEncSingle.Value)
+    }
+    [void] $general.PSObject.Properties.Remove("positionEncoding")
+  }
+}
+
 function Find-HeaderEnd([System.Collections.Generic.List[byte]] $buffer) {
   for ([int] $i = 0; $i -le $buffer.Count - 4; $i++) {
     if ($buffer[$i] -eq 13 -and $buffer[$i + 1] -eq 10 -and $buffer[$i + 2] -eq 13 -and $buffer[$i + 3] -eq 10) {
@@ -154,7 +197,7 @@ function Get-ContentLength([string] $headersText) {
   return 0
 }
 
-function Start-ServerProcess([string] $cmd, [string[]] $args) {
+function Start-ServerProcess([string] $cmd, [string[]] $serverArgs) {
   $psi = New-Object System.Diagnostics.ProcessStartInfo
   $psi.UseShellExecute = $false
   $psi.RedirectStandardInput = $true
@@ -167,14 +210,24 @@ function Start-ServerProcess([string] $cmd, [string[]] $args) {
 
   if ($cmd -match '\.(cmd|bat)$') {
     $psi.FileName = "cmd.exe"
-    $escapedArgs = ($args | ForEach-Object {
+    $escapedArgs = ($serverArgs | ForEach-Object {
       if ($_ -match '\s|"') { '"' + ($_ -replace '"', '\"') + '"' } else { $_ }
     }) -join " "
-    $psi.Arguments = "/c `"$cmd`" $escapedArgs"
+
+    # cmd.exe quoting is subtle when the invoked .cmd path contains spaces.
+    # Use a single, fully-quoted command string after /c:
+    #   /c ""C:\Path With Spaces\server.cmd" arg1 "arg 2""
+    if ([string]::IsNullOrWhiteSpace($escapedArgs)) {
+      $commandLine = "`"$cmd`""
+    }
+    else {
+      $commandLine = "`"$cmd`" $escapedArgs"
+    }
+    $psi.Arguments = "/c `"$commandLine`""
   }
   else {
     $psi.FileName = $cmd
-    $psi.Arguments = ($args | ForEach-Object {
+    $psi.Arguments = ($serverArgs | ForEach-Object {
       if ($_ -match '\s|"') { '"' + ($_ -replace '"', '\"') + '"' } else { $_ }
     }) -join " "
   }
@@ -265,6 +318,7 @@ try {
     }
     $msg = Fix-Value $msg
     Try-InjectTsdk $msg
+    Normalize-InitializeClientCapabilities $msg
 
     [string] $jsonOut = $msg | ConvertTo-Json -Depth 100 -Compress
     [byte[]] $outBytes = [System.Text.Encoding]::UTF8.GetBytes($jsonOut)
@@ -274,11 +328,19 @@ try {
 
     $serverIn.Write($outHeaderBytes, 0, $outHeaderBytes.Length)
     $serverIn.Write($outBytes, 0, $outBytes.Length)
-    $serverIn.Flush()
+    try {
+      $serverIn.Flush()
+    }
+    catch [System.IO.IOException] {
+      break
+    }
   }
 }
 catch {
-  Write-ProxyError("Proxy error: $($_.Exception.Message)")
+  $msg = [string]$_.Exception.Message
+  if ($msg -notmatch 'pipe is being closed') {
+    Write-ProxyError("Proxy error: $msg")
+  }
 }
 finally {
   try { $serverIn.Close() } catch {}
