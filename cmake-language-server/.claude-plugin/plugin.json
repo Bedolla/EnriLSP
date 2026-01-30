@@ -1,6 +1,6 @@
 {
   "name": "cmake-language-server",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CMake language server for Windows",
   "author": {
     "name": "Bedolla"
@@ -15,3 +15,4 @@
   ],
   "lspServers": "./.lsp.json"
 }
+

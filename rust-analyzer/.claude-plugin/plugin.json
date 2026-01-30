@@ -1,6 +1,6 @@
 {
   "name": "rust-analyzer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Rust language server for Windows",
   "author": {
     "name": "Bedolla"
@@ -16,3 +16,4 @@
   ],
   "lspServers": "./.lsp.json"
 }
+

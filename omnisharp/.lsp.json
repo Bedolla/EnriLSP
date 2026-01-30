@@ -1,7 +1,15 @@
 {
   "csharp-ls": {
-    "command": "csharp-ls",
-    "args": [],
+    "command": "pwsh",
+    "args": [
+      "-NoLogo",
+      "-NoProfile",
+      "-NonInteractive",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command",
+      "$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';$root=(Get-Location).Path;$sln=Get-ChildItem -Path $root -Filter '*.sln' -File -ErrorAction SilentlyContinue | Select-Object -First 1;$csproj=Get-ChildItem -Path $root -Filter '*.csproj' -File -ErrorAction SilentlyContinue | Select-Object -First 1;$fsproj=Get-ChildItem -Path $root -Filter '*.fsproj' -File -ErrorAction SilentlyContinue | Select-Object -First 1;if($sln){& csharp-ls --loglevel error --solution $sln.FullName}elseif($csproj -or $fsproj){& csharp-ls --loglevel error}else{$dummyDir=[IO.Path]::Combine($env:LOCALAPPDATA,'EnriLSP','workspaces','csharp-empty');New-Item -ItemType Directory -Force -Path $dummyDir | Out-Null;$dummySln=[IO.Path]::Combine($dummyDir,'Empty.sln');if(-not (Test-Path $dummySln)){Set-Content -Path $dummySln -Value @('Microsoft Visual Studio Solution File, Format Version 12.00','# Visual Studio Version 17','VisualStudioVersion = 17.0.31903.59','MinimumVisualStudioVersion = 10.0.40219.1','Global','EndGlobal') -Encoding Ascii};& csharp-ls --loglevel error --solution $dummySln}"
+    ],
     "extensionToLanguage": {
       ".cs": "csharp",
       ".csx": "csharp"

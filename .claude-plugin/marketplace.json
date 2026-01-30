@@ -9,7 +9,7 @@
     {
       "name": "angular-language-server",
       "description": "Angular language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./angular-language-server",
       "category": "development"
@@ -17,7 +17,7 @@
     {
       "name": "astro-language-server",
       "description": "Astro language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./astro-language-server",
       "category": "development"
@@ -25,7 +25,7 @@
     {
       "name": "bash-language-server",
       "description": "Bash/Shell language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./bash-language-server",
       "category": "development"
@@ -33,7 +33,7 @@
     {
       "name": "clangd",
       "description": "C/C++ language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./clangd",
       "category": "development"
@@ -41,7 +41,7 @@
     {
       "name": "cmake-language-server",
       "description": "CMake language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./cmake-language-server",
       "category": "development"
@@ -49,7 +49,7 @@
     {
       "name": "cssmodules-language-server",
       "description": "CSS Modules language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./cssmodules-language-server",
       "category": "development"
@@ -57,7 +57,7 @@
     {
       "name": "dart-analyzer",
       "description": "Dart/Flutter language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./dart-analyzer",
       "category": "development"
@@ -65,7 +65,7 @@
     {
       "name": "dockerfile-language-server",
       "description": "Dockerfile language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./dockerfile-language-server",
       "category": "development"
@@ -73,7 +73,7 @@
     {
       "name": "ember-language-server",
       "description": "Ember.js language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./ember-language-server",
       "category": "development"
@@ -81,7 +81,7 @@
     {
       "name": "gopls",
       "description": "Go language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./gopls",
       "category": "development"
@@ -89,7 +89,7 @@
     {
       "name": "graphql-lsp",
       "description": "GraphQL language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./graphql-lsp",
       "category": "development"
@@ -97,7 +97,7 @@
     {
       "name": "intelephense",
       "description": "PHP language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./intelephense",
       "category": "development"
@@ -105,7 +105,7 @@
     {
       "name": "jdtls",
       "description": "Java language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./jdtls",
       "category": "development"
@@ -113,7 +113,7 @@
     {
       "name": "kotlin-language-server",
       "description": "JetBrains Kotlin LSP (official) for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./kotlin-language-server",
       "category": "development"
@@ -121,7 +121,7 @@
     {
       "name": "lua-language-server",
       "description": "Lua language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./lua-language-server",
       "category": "development"
@@ -129,7 +129,7 @@
     {
       "name": "marksman",
       "description": "Markdown language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./marksman",
       "category": "development"
@@ -137,7 +137,7 @@
     {
       "name": "omnisharp",
       "description": "C# language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./omnisharp",
       "category": "development"
@@ -145,7 +145,7 @@
     {
       "name": "postgres-language-server",
       "description": "PostgreSQL language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./postgres-language-server",
       "category": "development"
@@ -153,7 +153,7 @@
     {
       "name": "powershell-editor-services",
       "description": "PowerShell language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./powershell-editor-services",
       "category": "development"
@@ -161,7 +161,7 @@
     {
       "name": "prisma-language-server",
       "description": "Prisma language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./prisma-language-server",
       "category": "development"
@@ -169,7 +169,7 @@
     {
       "name": "pyright",
       "description": "Python language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./pyright",
       "category": "development"
@@ -177,7 +177,7 @@
     {
       "name": "rust-analyzer",
       "description": "Rust language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./rust-analyzer",
       "category": "development"
@@ -185,7 +185,7 @@
     {
       "name": "solargraph",
       "description": "Ruby language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./solargraph",
       "category": "development"
@@ -193,7 +193,7 @@
     {
       "name": "svelte-language-server",
       "description": "Svelte language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./svelte-language-server",
       "category": "development"
@@ -201,7 +201,7 @@
     {
       "name": "tailwindcss-language-server",
       "description": "TailwindCSS language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./tailwindcss-language-server",
       "category": "development"
@@ -209,7 +209,7 @@
     {
       "name": "terraform-ls",
       "description": "Terraform language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./terraform-ls",
       "category": "development"
@@ -217,7 +217,7 @@
     {
       "name": "texlab",
       "description": "LaTeX language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./texlab",
       "category": "development"
@@ -225,7 +225,7 @@
     {
       "name": "vscode-langservers",
       "description": "HTML/CSS/JSON/ESLint language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./vscode-langservers",
       "category": "development"
@@ -233,7 +233,7 @@
     {
       "name": "vtsls",
       "description": "TypeScript/JavaScript language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./vtsls",
       "category": "development"
@@ -241,7 +241,7 @@
     {
       "name": "vue-language-server",
       "description": "Vue.js language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./vue-language-server",
       "category": "development"
@@ -249,7 +249,7 @@
     {
       "name": "yaml-language-server",
       "description": "YAML language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./yaml-language-server",
       "category": "development"
@@ -257,10 +257,11 @@
     {
       "name": "zls",
       "description": "Zig language server for Windows",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": { "name": "Bedolla" },
       "source": "./zls",
       "category": "development"
     }
   ]
 }
+

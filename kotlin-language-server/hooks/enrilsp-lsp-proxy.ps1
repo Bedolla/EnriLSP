@@ -224,6 +224,39 @@ function Normalize-InitializeWorkspaceFolders([psobject] $message) {
   # If it's any other enumerable (but not a string), leave it as-is.
 }
 
+function Ensure-InitializeWorkspaceFolderCapability([psobject] $message) {
+  if ($null -eq $message) {
+    return
+  }
+
+  if (-not ($message.PSObject.Properties["method"] -and $message.method -eq "initialize")) {
+    return
+  }
+
+  $params = Ensure-ObjectProperty $message "params"
+  if ($null -eq $params) {
+    return
+  }
+
+  # Some servers warn if workspaceFolders are sent but the client doesn't declare support.
+  $wfProp = $params.PSObject.Properties["workspaceFolders"]
+  if ($null -eq $wfProp -or $null -eq $wfProp.Value) {
+    return
+  }
+
+  $caps = Ensure-ObjectProperty $params "capabilities"
+  $workspace = Ensure-ObjectProperty $caps "workspace"
+  $workspaceFoldersCaps = Ensure-ObjectProperty $workspace "workspaceFolders"
+
+  $supported = $workspaceFoldersCaps.PSObject.Properties["supported"]
+  if ($null -eq $supported) {
+    $workspaceFoldersCaps | Add-Member -MemberType NoteProperty -Name "supported" -Value $true
+  }
+  else {
+    $workspaceFoldersCaps.supported = $true
+  }
+}
+
 function Find-HeaderEnd([System.Collections.Generic.List[byte]] $buffer) {
   for ([int] $i = 0; $i -le $buffer.Count - 4; $i++) {
     if ($buffer[$i] -eq 13 -and $buffer[$i + 1] -eq 10 -and $buffer[$i + 2] -eq 13 -and $buffer[$i + 3] -eq 10) {
@@ -300,59 +333,39 @@ $clientOut = [Console]::OpenStandardOutput()
 $serverIn = $server.StandardInput.BaseStream
 $serverOut = $server.StandardOutput.BaseStream
 
-# Server -> Client (no modifications)
-$copyTask = $serverOut.CopyToAsync($clientOut)
+[bool] $fixShutdownErrors = -not [string]::IsNullOrWhiteSpace($env:ENRILSP_FIX_SHUTDOWN_ERRORS)
+$shutdownRequestIds = [System.Collections.Concurrent.ConcurrentDictionary[string, bool]]::new()
 
-# Client -> Server (rewrite JSON payloads)
-$buffer = New-Object System.Collections.Generic.List[byte]
-$readBuf = New-Object byte[] 8192
+$headerTerminatorBytes = [byte[]]@(13, 10, 13, 10)
 
-try {
+function Write-RawMessage([System.IO.Stream] $dest, [byte[]] $headersBytes, [byte[]] $bodyBytes) {
+  $dest.Write($headersBytes, 0, $headersBytes.Length)
+  $dest.Write($headerTerminatorBytes, 0, $headerTerminatorBytes.Length)
+  $dest.Write($bodyBytes, 0, $bodyBytes.Length)
+}
+
+function Process-ClientBuffer([System.Collections.Generic.List[byte]] $clientBuffer) {
   while ($true) {
-    $headerEnd = Find-HeaderEnd $buffer
-    while ($headerEnd -lt 0) {
-      $n = $clientIn.Read($readBuf, 0, $readBuf.Length)
-      if ($n -le 0) {
-        break
-      }
-      # NOTE: In Windows PowerShell 5.1, slicing a byte[] (e.g. $readBuf[0..($n-1)])
-      # yields System.Object[], which breaks List[byte].AddRange(IEnumerable[byte]).
-      # Copy into a real byte[] before AddRange.
-      $chunk = New-Object byte[] $n
-      [System.Array]::Copy($readBuf, 0, $chunk, 0, $n)
-      $buffer.AddRange($chunk)
-      $headerEnd = Find-HeaderEnd $buffer
-    }
-
+    $headerEnd = Find-HeaderEnd $clientBuffer
     if ($headerEnd -lt 0) {
-      break
+      return
     }
 
-    $headersBytes = $buffer.GetRange(0, $headerEnd).ToArray()
+    $headersBytes = $clientBuffer.GetRange(0, $headerEnd).ToArray()
     [string] $headersText = [System.Text.Encoding]::ASCII.GetString($headersBytes)
     [int] $contentLength = Get-ContentLength $headersText
     if ($contentLength -le 0) {
       Write-ProxyError("Missing or invalid Content-Length header")
-      break
+      throw "Missing Content-Length"
     }
 
     [int] $bodyStart = $headerEnd + 4
-    while ($buffer.Count -lt ($bodyStart + $contentLength)) {
-      $n = $clientIn.Read($readBuf, 0, $readBuf.Length)
-      if ($n -le 0) {
-        break
-      }
-      $chunk = New-Object byte[] $n
-      [System.Array]::Copy($readBuf, 0, $chunk, 0, $n)
-      $buffer.AddRange($chunk)
+    if ($clientBuffer.Count -lt ($bodyStart + $contentLength)) {
+      return
     }
 
-    if ($buffer.Count -lt ($bodyStart + $contentLength)) {
-      break
-    }
-
-    $bodyBytes = $buffer.GetRange($bodyStart, $contentLength).ToArray()
-    $buffer.RemoveRange(0, $bodyStart + $contentLength)
+    $bodyBytes = $clientBuffer.GetRange($bodyStart, $contentLength).ToArray()
+    $clientBuffer.RemoveRange(0, $bodyStart + $contentLength)
 
     [string] $jsonIn = [System.Text.Encoding]::UTF8.GetString($bodyBytes)
     if ((Get-Command ConvertFrom-Json).Parameters.ContainsKey('Depth')) {
@@ -361,10 +374,19 @@ try {
     else {
       $msg = $jsonIn | ConvertFrom-Json
     }
+
+    if ($fixShutdownErrors -and $msg.PSObject.Properties["method"] -and $msg.method -eq "shutdown" -and $msg.PSObject.Properties["id"]) {
+      $idKey = [string] $msg.id
+      if (-not [string]::IsNullOrEmpty($idKey)) {
+        $shutdownRequestIds[$idKey] = $true
+      }
+    }
+
     $msg = Fix-Value $msg
     Try-InjectTsdk $msg
     Normalize-InitializeWorkspaceFolders $msg
     Normalize-InitializeClientCapabilities $msg
+    Ensure-InitializeWorkspaceFolderCapability $msg
 
     [string] $jsonOut = $msg | ConvertTo-Json -Depth 100 -Compress
     [byte[]] $outBytes = [System.Text.Encoding]::UTF8.GetBytes($jsonOut)
@@ -374,11 +396,158 @@ try {
 
     $serverIn.Write($outHeaderBytes, 0, $outHeaderBytes.Length)
     $serverIn.Write($outBytes, 0, $outBytes.Length)
-    try {
-      $serverIn.Flush()
+    $serverIn.Flush()
+  }
+}
+
+function Process-ServerBuffer([System.Collections.Generic.List[byte]] $serverBuffer) {
+  while ($true) {
+    $headerEnd = Find-HeaderEnd $serverBuffer
+    if ($headerEnd -lt 0) {
+      return
     }
-    catch [System.IO.IOException] {
+
+    $headersBytes = $serverBuffer.GetRange(0, $headerEnd).ToArray()
+    [string] $headersText = [System.Text.Encoding]::ASCII.GetString($headersBytes)
+    [int] $contentLength = Get-ContentLength $headersText
+    if ($contentLength -le 0) {
+      Write-ProxyError("Missing or invalid Content-Length header from server")
+      throw "Missing Content-Length from server"
+    }
+
+    [int] $bodyStart = $headerEnd + 4
+    if ($serverBuffer.Count -lt ($bodyStart + $contentLength)) {
+      return
+    }
+
+    $bodyBytes = $serverBuffer.GetRange($bodyStart, $contentLength).ToArray()
+    $serverBuffer.RemoveRange(0, $bodyStart + $contentLength)
+
+    if (-not $fixShutdownErrors -or $shutdownRequestIds.Count -eq 0) {
+      Write-RawMessage $clientOut $headersBytes $bodyBytes
+      continue
+    }
+
+    # Only parse/modify if it's a response to a tracked shutdown request.
+    [string] $jsonIn = [System.Text.Encoding]::UTF8.GetString($bodyBytes)
+    if ($jsonIn -notmatch '\"id\"') {
+      Write-RawMessage $clientOut $headersBytes $bodyBytes
+      continue
+    }
+
+    if ((Get-Command ConvertFrom-Json).Parameters.ContainsKey('Depth')) {
+      $msg = $jsonIn | ConvertFrom-Json -Depth 100
+    }
+    else {
+      $msg = $jsonIn | ConvertFrom-Json
+    }
+
+    $idProp = $msg.PSObject.Properties["id"]
+    if ($null -eq $idProp -or $null -eq $idProp.Value) {
+      Write-RawMessage $clientOut $headersBytes $bodyBytes
+      continue
+    }
+
+    $idKey = [string] $idProp.Value
+    if (-not $shutdownRequestIds.ContainsKey($idKey)) {
+      Write-RawMessage $clientOut $headersBytes $bodyBytes
+      continue
+    }
+
+    $errorProp = $msg.PSObject.Properties["error"]
+    if ($null -ne $errorProp -and $null -ne $errorProp.Value) {
+      # Dart analyzer sometimes returns an internal error for shutdown (-32001).
+      # Claude Code treats that as a failure to stop. Rewrite to a successful null result.
+      [void] $msg.PSObject.Properties.Remove("error")
+      if ($msg.PSObject.Properties["result"]) {
+        $msg.result = $null
+      }
+      else {
+        $msg | Add-Member -MemberType NoteProperty -Name "result" -Value $null
+      }
+    }
+
+    [bool] $ignored = $false
+    $shutdownRequestIds.TryRemove($idKey, [ref] $ignored) | Out-Null
+
+    [string] $jsonOut = $msg | ConvertTo-Json -Depth 100 -Compress
+    [byte[]] $outBytes = [System.Text.Encoding]::UTF8.GetBytes($jsonOut)
+
+    [string] $outHeaders = "Content-Length: $($outBytes.Length)`r`n`r`n"
+    [byte[]] $outHeaderBytes = [System.Text.Encoding]::ASCII.GetBytes($outHeaders)
+
+    $clientOut.Write($outHeaderBytes, 0, $outHeaderBytes.Length)
+    $clientOut.Write($outBytes, 0, $outBytes.Length)
+    $clientOut.Flush()
+  }
+}
+
+$clientBuffer = New-Object System.Collections.Generic.List[byte]
+$serverBuffer = New-Object System.Collections.Generic.List[byte]
+
+$clientReadBuf = New-Object byte[] 8192
+$serverReadBuf = New-Object byte[] 8192
+
+$clientReadTask = $clientIn.ReadAsync($clientReadBuf, 0, $clientReadBuf.Length)
+$serverReadTask = $serverOut.ReadAsync($serverReadBuf, 0, $serverReadBuf.Length)
+
+[bool] $clientEof = $false
+[bool] $serverEof = $false
+
+try {
+  while (-not ($clientEof -and $serverEof)) {
+    $tasks = @()
+    $taskKinds = @()
+
+    if (-not $clientEof) {
+      $tasks += $clientReadTask
+      $taskKinds += "client"
+    }
+
+    if (-not $serverEof) {
+      $tasks += $serverReadTask
+      $taskKinds += "server"
+    }
+
+    if ($tasks.Count -eq 0) {
       break
+    }
+
+    $completedIndex = [System.Threading.Tasks.Task]::WaitAny($tasks)
+    $kind = $taskKinds[$completedIndex]
+
+    if ($kind -eq "client") {
+      $n = $clientReadTask.Result
+      if ($n -le 0) {
+        $clientEof = $true
+        try { $serverIn.Close() } catch {}
+      }
+      else {
+        $chunk = New-Object byte[] $n
+        [System.Array]::Copy($clientReadBuf, 0, $chunk, 0, $n)
+        $clientBuffer.AddRange($chunk)
+        Process-ClientBuffer $clientBuffer
+      }
+
+      if (-not $clientEof) {
+        $clientReadTask = $clientIn.ReadAsync($clientReadBuf, 0, $clientReadBuf.Length)
+      }
+    }
+    else {
+      $n = $serverReadTask.Result
+      if ($n -le 0) {
+        $serverEof = $true
+      }
+      else {
+        $chunk = New-Object byte[] $n
+        [System.Array]::Copy($serverReadBuf, 0, $chunk, 0, $n)
+        $serverBuffer.AddRange($chunk)
+        Process-ServerBuffer $serverBuffer
+      }
+
+      if (-not $serverEof) {
+        $serverReadTask = $serverOut.ReadAsync($serverReadBuf, 0, $serverReadBuf.Length)
+      }
     }
   }
 }
@@ -392,5 +561,4 @@ finally {
   try { $serverIn.Close() } catch {}
 }
 
-try { $copyTask.Wait() } catch {}
 try { $server.WaitForExit(2000) | Out-Null } catch {}
