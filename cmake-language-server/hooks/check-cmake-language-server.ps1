@@ -33,9 +33,9 @@ class PythonCommand {
   [string] $Exe
   [string[]] $Args
 
-  PythonCommand([string] $exe, [string[]] $args) {
+  PythonCommand([string] $exe, [string[]] $arguments) {
     $this.Exe = $exe
-    $this.Args = $args
+    $this.Args = $arguments
   }
 }
 

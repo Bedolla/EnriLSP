@@ -8,7 +8,7 @@
       "-ExecutionPolicy",
       "Bypass",
       "-Command",
-      "$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';$proxy=[IO.Path]::Combine($env:LOCALAPPDATA,'EnriLSP','bin','enrilsp-lsp-proxy.ps1');$server=[IO.Path]::Combine($env:LOCALAPPDATA,'EnriLSP','cmake-language-server','.venv','Scripts','cmake-language-server.exe');for($i=0;$i -lt 480 -and -not (Test-Path $server);$i++){Start-Sleep -Milliseconds 250};if(-not (Test-Path $server)){exit 127};if(Test-Path $proxy){& $proxy $server}else{& $server}"
+      "$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';$proxy=[IO.Path]::Combine($env:LOCALAPPDATA,'EnriLSP','bin','enrilsp-lsp-proxy.ps1');$server=[IO.Path]::Combine($env:LOCALAPPDATA,'EnriLSP','cmake-language-server','.venv','Scripts','cmake-language-server.exe');for($i=0;$i -lt 1200 -and -not (Test-Path $server);$i++){Start-Sleep -Milliseconds 250};if(-not (Test-Path $server)){exit 127};if(Test-Path $proxy){& $proxy $server}else{& $server}"
     ],
     "extensionToLanguage": {
       ".cmake": "cmake"
