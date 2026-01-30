@@ -1,6 +1,6 @@
 {
   "name": "kotlin-language-server",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "JetBrains Kotlin LSP (official) for Windows",
   "author": {
     "name": "Bedolla"

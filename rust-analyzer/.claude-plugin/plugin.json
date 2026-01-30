@@ -1,6 +1,6 @@
 {
   "name": "rust-analyzer",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Rust language server for Windows",
   "author": {
     "name": "Bedolla"

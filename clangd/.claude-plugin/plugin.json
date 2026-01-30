@@ -1,6 +1,6 @@
 {
   "name": "clangd",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "C/C++ language server for Windows",
   "author": {
     "name": "Bedolla"

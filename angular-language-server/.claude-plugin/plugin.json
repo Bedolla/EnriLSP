@@ -1,6 +1,6 @@
 {
   "name": "angular-language-server",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Angular language server for Windows",
   "author": {
     "name": "Bedolla"

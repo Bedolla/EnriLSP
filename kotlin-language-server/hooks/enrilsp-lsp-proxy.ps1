@@ -388,8 +388,31 @@ function Process-ClientBuffer([System.Collections.Generic.List[byte]] $clientBuf
     Normalize-InitializeClientCapabilities $msg
     if ($msg.PSObject.Properties["method"] -and $msg.method -eq "shutdown") {
       $paramsProp = $msg.PSObject.Properties["params"]
-      if ($paramsProp -and $null -eq $paramsProp.Value) {
-        [void] $msg.PSObject.Properties.Remove("params")
+      if ($paramsProp) {
+        $paramsValue = $paramsProp.Value
+        [bool] $removeParams = $false
+
+        if ($null -eq $paramsValue) {
+          $removeParams = $true
+        }
+        elseif (($paramsValue -is [System.Collections.IEnumerable]) -and -not ($paramsValue -is [string])) {
+          # Some clients send shutdown params as [null] (or []). Strict servers (e.g. rust-analyzer)
+          # expect no params at all.
+          [bool] $allNull = $true
+          foreach ($item in $paramsValue) {
+            if ($null -ne $item) {
+              $allNull = $false
+              break
+            }
+          }
+          if ($allNull) {
+            $removeParams = $true
+          }
+        }
+
+        if ($removeParams) {
+          [void] $msg.PSObject.Properties.Remove("params")
+        }
       }
     }
     [string] $jsonOut = $msg | ConvertTo-Json -Depth 100 -Compress
