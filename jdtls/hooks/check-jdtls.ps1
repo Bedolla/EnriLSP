@@ -383,24 +383,30 @@ class JdtlsInstaller {
       # Fetch the latest version from Eclipse milestones directory
       $this.EnvManager.WriteInfo("Fetching latest jdtls version from Eclipse...")
       [string] $milestonesPage = "https://download.eclipse.org/jdtls/milestones/"
-      [string] $pageContent = (Invoke-WebRequest -Uri $milestonesPage -UseBasicParsing -TimeoutSec 30).Content
+      [string] $pageContent = (Invoke-WebRequest -Uri $milestonesPage -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop).Content
 
       # Extract version numbers (format: 1.XX.X) and find the latest
       [regex] $versionPattern = '(1\.\d+\.\d+)'
       $versionMatches = $versionPattern.Matches($pageContent)
       [string[]] $versions = $versionMatches | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique { [version]$_ } -Descending
-      [string] $latestVersion = $versions[0]
 
-      if ([string]::IsNullOrEmpty($latestVersion)) {
+      if ($null -eq $versions -or $versions.Count -eq 0) {
         $this.EnvManager.WriteWarning("Could not detect latest version, using fallback 1.55.0")
-        $latestVersion = "1.55.0"
+        [string] $latestVersion = "1.55.0"
+      }
+      else {
+        [string] $latestVersion = $versions[0]
+        if ([string]::IsNullOrEmpty($latestVersion)) {
+          $this.EnvManager.WriteWarning("Could not detect latest version, using fallback 1.55.0")
+          $latestVersion = "1.55.0"
+        }
       }
 
       $this.EnvManager.WriteInfo("Latest jdtls version: $latestVersion")
 
       # List the version folder to find the exact tar.gz filename
       [string] $versionFolder = "https://download.eclipse.org/jdtls/milestones/$latestVersion/"
-      [string] $folderContent = (Invoke-WebRequest -Uri $versionFolder -UseBasicParsing -TimeoutSec 30).Content
+      [string] $folderContent = (Invoke-WebRequest -Uri $versionFolder -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop).Content
 
       # Extract tar.gz filename (format: jdt-language-server-X.XX.X-YYYYMMDDHHSS.tar.gz)
       [regex] $tarPattern = '(jdt-language-server-[\d\.]+-\d+\.tar\.gz)'
@@ -416,7 +422,7 @@ class JdtlsInstaller {
       [string] $tempFile = "$env:TEMP\jdtls.tar.gz"
 
       $this.EnvManager.WriteInfo("Downloading jdtls $latestVersion from Eclipse...")
-      Invoke-WebRequest -Uri $downloadUrl -OutFile $tempFile -UseBasicParsing -TimeoutSec 180
+      Invoke-WebRequest -Uri $downloadUrl -OutFile $tempFile -UseBasicParsing -TimeoutSec 180 -ErrorAction Stop
 
       # Extract using tar (available in Windows 10+)
       $this.EnvManager.WriteInfo("Extracting jdtls...")

@@ -79,8 +79,13 @@ class EnvironmentManager {
 
 class PostgresLspInstaller {
   hidden [EnvironmentManager] $EnvManager
-  hidden [string] $InstallDir = "$env:LOCALAPPDATA\postgres-language-server"
+  # Centralized bin directory for EnriLSP-installed executables
+  hidden [string] $InstallDir = "$env:LOCALAPPDATA\EnriLSP\bin"
   hidden [string[]] $LspKnownPaths = @(
+    # Preferred centralized location
+    "$env:LOCALAPPDATA\EnriLSP\bin\postgres-language-server.exe",
+
+    # Legacy location (kept for compatibility)
     "$env:LOCALAPPDATA\postgres-language-server\postgres-language-server.exe"
   )
   hidden [string] $GitHubApiUrl = "https://api.github.com/repos/supabase-community/postgres-language-server/releases/latest"
@@ -132,12 +137,26 @@ class PostgresLspInstaller {
     }
 
     [string] $exePath = Join-Path $this.InstallDir "postgres-language-server.exe"
+
+    # Backward-compat: if legacy location exists, migrate it to the centralized bin
+    [string] $legacyExe = "$env:LOCALAPPDATA\postgres-language-server\postgres-language-server.exe"
+    if ((Test-Path $legacyExe -PathType Leaf) -and -not (Test-Path $exePath -PathType Leaf)) {
+      try {
+        Copy-Item -Path $legacyExe -Destination $exePath -Force
+      }
+      catch { }
+    }
     
     try {
-      $ProgressPreference = 'SilentlyContinue'
-      Invoke-WebRequest -Uri $downloadUrl -OutFile $exePath -UseBasicParsing -TimeoutSec 120
-      $ProgressPreference = 'Continue'
-      
+      $previousProgressPreference = (Get-Variable -Name ProgressPreference -ValueOnly)
+      try {
+        $ProgressPreference = 'SilentlyContinue'
+        Invoke-WebRequest -Uri $downloadUrl -OutFile $exePath -UseBasicParsing -TimeoutSec 120 -ErrorAction Stop
+      }
+      finally {
+        $ProgressPreference = $previousProgressPreference
+      }
+
       if (Test-Path $exePath) {
         $this.AddLspToPath()
         $this.EnvManager.WriteSuccess("postgres-language-server installed to: $($this.InstallDir)")

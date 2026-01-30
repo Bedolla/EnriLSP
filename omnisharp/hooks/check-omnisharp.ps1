@@ -87,14 +87,68 @@ class EnvironmentManager {
     return ""
   }
 
+  hidden [string] NormalizePathForComparison([string] $path) {
+    if ([string]::IsNullOrWhiteSpace($path)) {
+      return ""
+    }
+
+    [string] $p = $path.Trim()
+
+    # Strip quotes that sometimes appear in PATH segments
+    $p = $p.Trim('"')
+
+    # Expand %VARS% so "%USERPROFILE%\.dotnet\tools" compares equal to "C:\Users\...\.dotnet\tools"
+    try {
+      $p = [System.Environment]::ExpandEnvironmentVariables($p)
+    }
+    catch { }
+
+    # Normalize separators and trailing slashes
+    $p = ($p -replace '/', '\\').TrimEnd('\\')
+
+    # Try to canonicalize; if it fails (non-existent path, invalid chars), fall back to normalized string
+    try {
+      # GetFullPath normalizes things like .. and .
+      $p = [System.IO.Path]::GetFullPath($p)
+    }
+    catch { }
+
+    # Windows path comparison should be case-insensitive
+    return $p.ToLowerInvariant()
+  }
+
   [void] AddToUserPath([string] $binPath) {
     [string] $oldUserPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
-    # Normalize path for comparison (remove trailing backslash)
-    [string] $normalizedBin = $binPath.TrimEnd('\')
-    [string[]] $existingPaths = $oldUserPath -split ';' | ForEach-Object { $_.TrimEnd('\') }
 
+    # When Path is not set, GetEnvironmentVariable can return $null. Keep behavior safe.
+    if ($null -eq $oldUserPath) {
+      $oldUserPath = ""
+    }
+
+    [string] $normalizedBin = $this.NormalizePathForComparison($binPath)
+    if ([string]::IsNullOrWhiteSpace($normalizedBin)) {
+      return
+    }
+
+    [string] $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    if ($null -eq $machinePath) {
+      $machinePath = ""
+    }
+
+    # Check both Machine and User PATH to avoid duplicates across scopes.
+    [string[]] $existingPaths = (($machinePath + ";" + $oldUserPath) -split ';') |
+      ForEach-Object { $this.NormalizePathForComparison($_) } |
+      Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+
+    # Case-insensitive compare via normalized strings
     if ($normalizedBin -notin $existingPaths) {
-      [System.Environment]::SetEnvironmentVariable("Path", "$oldUserPath;$binPath", "User")
+      if ([string]::IsNullOrWhiteSpace($oldUserPath)) {
+        [System.Environment]::SetEnvironmentVariable("Path", $binPath, "User")
+      }
+      else {
+        [System.Environment]::SetEnvironmentVariable("Path", "$oldUserPath;$binPath", "User")
+      }
+
       $this.WriteInfo("Added to user PATH: $binPath")
     }
   }
@@ -103,9 +157,22 @@ class EnvironmentManager {
     # Combine Machine and User PATH, avoiding empty separators
     [string] $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
     [string] $userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+
+    if ($null -eq $machinePath) { $machinePath = "" }
+    if ($null -eq $userPath) { $userPath = "" }
+
     $machinePath = $machinePath.TrimEnd(';')
     $userPath = $userPath.TrimEnd(';')
-    $env:Path = "$machinePath;$userPath"
+
+    if ([string]::IsNullOrWhiteSpace($machinePath)) {
+      $env:Path = $userPath
+    }
+    elseif ([string]::IsNullOrWhiteSpace($userPath)) {
+      $env:Path = $machinePath
+    }
+    else {
+      $env:Path = "$machinePath;$userPath"
+    }
   }
 
   [bool] IsPackageManagerAvailable([string] $managerName) {

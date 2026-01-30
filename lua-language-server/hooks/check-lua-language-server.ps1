@@ -163,7 +163,7 @@ class LuaLanguageServerInstaller {
       # Download
       [string] $zipPath = "$env:TEMP\lua-language-server.zip"
       $this.EnvManager.WriteInfo("Downloading lua-language-server...")
-      Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 120
+      Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 120 -ErrorAction Stop
 
       # Extract
       $this.EnvManager.WriteInfo("Extracting...")

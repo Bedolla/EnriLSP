@@ -165,7 +165,10 @@ class PrismaLspInstaller {
     if (-not $this.InstallLsp()) {
       $this.EnvManager.WriteError("Failed to install. Please run manually:")
       $this.EnvManager.WriteError("  npm install -g @prisma/language-server")
+      # Exit code 2: stderr shown to user for Setup hooks
+      return 2
     }
+
     return 0
   }
 }

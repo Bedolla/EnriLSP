@@ -111,9 +111,16 @@ class PackageInstaller {
 class TerraformLsInstaller {
   hidden [EnvironmentManager] $EnvManager
   hidden [PackageInstaller] $PkgInstaller
-  hidden [string] $InstallDir = "$env:LOCALAPPDATA\terraform-ls"
+  # Centralized bin directory for EnriLSP-installed executables
+  hidden [string] $InstallDir = "$env:LOCALAPPDATA\EnriLSP\bin"
   hidden [string[]] $LspKnownPaths = @(
+    # Preferred centralized location
+    "$env:LOCALAPPDATA\EnriLSP\bin\terraform-ls.exe",
+
+    # Legacy location (kept for compatibility)
     "$env:LOCALAPPDATA\terraform-ls\terraform-ls.exe",
+
+    # Other possible locations (winget, program files)
     "C:\Program Files\terraform-ls\terraform-ls.exe",
     "$env:LOCALAPPDATA\Microsoft\WinGet\Links\terraform-ls.exe",
     "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\Hashicorp.Terraform-LS_*\terraform-ls.exe"
@@ -187,6 +194,22 @@ class TerraformLsInstaller {
         return $true
       }
 
+      # Backward-compat: if legacy install exists, migrate it to the centralized bin
+      [string] $legacyExe = "$env:LOCALAPPDATA\terraform-ls\terraform-ls.exe"
+      if ((Test-Path $legacyExe -PathType Leaf) -and -not (Test-Path $target -PathType Leaf)) {
+        try {
+          if (-not (Test-Path $this.InstallDir)) {
+            New-Item -ItemType Directory -Path $this.InstallDir -Force | Out-Null
+          }
+          Copy-Item -Path $legacyExe -Destination $target -Force
+        }
+        catch { }
+
+        if (Test-Path $target -PathType Leaf) {
+          return $true
+        }
+      }
+
       [string] $found = $this.FindInstalledExe()
       if ([string]::IsNullOrWhiteSpace($found)) {
         $this.EnvManager.WriteError("terraform-ls executable not found after install")
@@ -207,24 +230,9 @@ class TerraformLsInstaller {
   }
 
   [void] AddLspToPath() {
-    # Find the actual installation path
-    foreach ($path in $this.LspKnownPaths) {
-      if ($path -match '\*') {
-        $found = Get-ChildItem -Path $path -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($null -ne $found) {
-          $binDir = Split-Path -Parent $found.FullName
-          $this.EnvManager.AddToUserPath($binDir)
-          $this.EnvManager.RefreshSessionPath()
-          return
-        }
-      }
-      elseif (Test-Path $path -PathType Leaf) {
-        $binDir = Split-Path -Parent $path
-        $this.EnvManager.AddToUserPath($binDir)
-        $this.EnvManager.RefreshSessionPath()
-        return
-      }
-    }
+    # Prefer the centralized bin directory to minimize PATH entries.
+    $this.EnvManager.AddToUserPath($this.InstallDir)
+    $this.EnvManager.RefreshSessionPath()
   }
 
   [string] GetLatestVersion() {
@@ -251,12 +259,26 @@ class TerraformLsInstaller {
 
       [string] $zipPath = "$env:TEMP\terraform-ls.zip"
       $this.EnvManager.WriteInfo("Downloading terraform-ls v$version...")
-      $ProgressPreference = 'SilentlyContinue'
-      Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 120
-      $ProgressPreference = 'Continue'
+      $previousProgressPreference = (Get-Variable -Name ProgressPreference -ValueOnly)
+      try {
+        $ProgressPreference = 'SilentlyContinue'
+        Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 120 -ErrorAction Stop
+      }
+      finally {
+        $ProgressPreference = $previousProgressPreference
+      }
 
       $this.EnvManager.WriteInfo("Extracting...")
       Expand-Archive -Path $zipPath -DestinationPath $this.InstallDir -Force
+
+      # Some zips include a folder; if terraform-ls.exe isn't at root, try to locate it and move it
+      [string] $expected = Join-Path $this.InstallDir "terraform-ls.exe"
+      if (-not (Test-Path $expected -PathType Leaf)) {
+        $foundExe = Get-ChildItem -Path $this.InstallDir -Recurse -Filter "terraform-ls.exe" -File -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($null -ne $foundExe) {
+          Copy-Item -Path $foundExe.FullName -Destination $expected -Force
+        }
+      }
       Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
 
       $this.EnvManager.AddToUserPath($this.InstallDir)

@@ -111,9 +111,16 @@ class PackageInstaller {
 class ZlsInstaller {
   hidden [EnvironmentManager] $EnvManager
   hidden [PackageInstaller] $PkgInstaller
-  hidden [string] $InstallDir = "$env:LOCALAPPDATA\zls"
+  # Centralized bin directory for EnriLSP-installed executables
+  hidden [string] $InstallDir = "$env:LOCALAPPDATA\EnriLSP\bin"
   hidden [string[]] $LspKnownPaths = @(
+    # Preferred centralized location
+    "$env:LOCALAPPDATA\EnriLSP\bin\zls.exe",
+
+    # Legacy location (kept for compatibility)
     "$env:LOCALAPPDATA\zls\zls.exe",
+
+    # Other possible locations (winget)
     "$env:LOCALAPPDATA\Microsoft\WinGet\Links\zls.exe",
     "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\zig.zls_*\zls.exe"
   )
@@ -186,6 +193,22 @@ class ZlsInstaller {
         return $true
       }
 
+      # Backward-compat: if legacy install exists, migrate it to the centralized bin
+      [string] $legacyExe = "$env:LOCALAPPDATA\zls\zls.exe"
+      if ((Test-Path $legacyExe -PathType Leaf) -and -not (Test-Path $target -PathType Leaf)) {
+        try {
+          if (-not (Test-Path $this.InstallDir)) {
+            New-Item -ItemType Directory -Path $this.InstallDir -Force | Out-Null
+          }
+          Copy-Item -Path $legacyExe -Destination $target -Force
+        }
+        catch { }
+
+        if (Test-Path $target -PathType Leaf) {
+          return $true
+        }
+      }
+
       [string] $found = $this.FindInstalledExe()
       if ([string]::IsNullOrWhiteSpace($found)) {
         $this.EnvManager.WriteError("zls executable not found after install")
@@ -206,23 +229,9 @@ class ZlsInstaller {
   }
 
   [void] AddLspToPath() {
-    foreach ($path in $this.LspKnownPaths) {
-      if ($path -match '\*') {
-        $found = Get-ChildItem -Path $path -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($null -ne $found) {
-          $binDir = Split-Path -Parent $found.FullName
-          $this.EnvManager.AddToUserPath($binDir)
-          $this.EnvManager.RefreshSessionPath()
-          return
-        }
-      }
-      elseif (Test-Path $path -PathType Leaf) {
-        $binDir = Split-Path -Parent $path
-        $this.EnvManager.AddToUserPath($binDir)
-        $this.EnvManager.RefreshSessionPath()
-        return
-      }
-    }
+    # Prefer the centralized bin directory to minimize PATH entries.
+    $this.EnvManager.AddToUserPath($this.InstallDir)
+    $this.EnvManager.RefreshSessionPath()
   }
 
   [string] GetLatestReleaseUrl() {
@@ -256,10 +265,20 @@ class ZlsInstaller {
 
       [string] $zipPath = "$env:TEMP\zls.zip"
       $this.EnvManager.WriteInfo("Downloading zls...")
-      Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 120
+      Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 120 -ErrorAction Stop
 
       $this.EnvManager.WriteInfo("Extracting...")
       Expand-Archive -Path $zipPath -DestinationPath $this.InstallDir -Force
+
+      # Some zips include a folder; if zls.exe isn't at root, try to locate it and move it
+      [string] $expected = Join-Path $this.InstallDir "zls.exe"
+      if (-not (Test-Path $expected -PathType Leaf)) {
+        $foundExe = Get-ChildItem -Path $this.InstallDir -Recurse -Filter "zls.exe" -File -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($null -ne $foundExe) {
+          Copy-Item -Path $foundExe.FullName -Destination $expected -Force
+        }
+      }
+
       Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
 
       $this.EnvManager.AddToUserPath($this.InstallDir)

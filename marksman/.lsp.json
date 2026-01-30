@@ -1,7 +1,15 @@
 {
   "marksman": {
-    "command": "marksman",
-    "args": ["server"],
+    "command": "pwsh",
+    "args": [
+      "-NoLogo",
+      "-NoProfile",
+      "-NonInteractive",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command",
+      "$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';$server=[IO.Path]::Combine($env:LOCALAPPDATA,'EnriLSP','bin','marksman.exe');for($i=0;$i -lt 480 -and -not (Test-Path $server);$i++){Start-Sleep -Milliseconds 250};if(-not (Test-Path $server)){exit 127};& $server 'server'"
+    ],
     "extensionToLanguage": {
       ".md": "markdown"
     }

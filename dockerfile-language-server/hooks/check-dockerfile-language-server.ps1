@@ -220,7 +220,12 @@ class DockerfileLanguageServerInstaller {
       }
     }
 
-    $this.InstallLsp()
+    [bool] $lspInstalled = $this.InstallLsp()
+    if (-not $lspInstalled) {
+      # Exit code 2: stderr shown to user for Setup hooks
+      return 2
+    }
+
     return 0
   }
 }

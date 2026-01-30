@@ -116,8 +116,13 @@ class PackageInstaller {
 class MarksmanInstaller {
   hidden [EnvironmentManager] $EnvManager
   hidden [PackageInstaller] $PkgInstaller
-  hidden [string] $InstallDir = "$env:LOCALAPPDATA\marksman"
+  # Centralized bin directory for EnriLSP-installed executables
+  hidden [string] $InstallDir = "$env:LOCALAPPDATA\EnriLSP\bin"
   hidden [string[]] $LspKnownPaths = @(
+    # Preferred centralized location
+    "$env:LOCALAPPDATA\EnriLSP\bin\marksman.exe",
+
+    # Legacy locations (kept for compatibility)
     "$env:LOCALAPPDATA\marksman\marksman.exe",
     "$env:LOCALAPPDATA\Programs\marksman\marksman.exe",
     "C:\Program Files\marksman\marksman.exe"
@@ -134,14 +139,8 @@ class MarksmanInstaller {
   }
 
   [void] AddLspToPath() {
-    [string] $foundPath = $this.EnvManager.FindExistingFile($this.LspKnownPaths)
-    if (-not [string]::IsNullOrEmpty($foundPath)) {
-      [string] $binDir = Split-Path -Parent $foundPath
-      $this.EnvManager.AddToUserPath($binDir)
-    }
-    else {
-      $this.EnvManager.AddToUserPath($this.InstallDir)
-    }
+    # Prefer the centralized bin directory to minimize PATH entries
+    $this.EnvManager.AddToUserPath($this.InstallDir)
     $this.EnvManager.RefreshSessionPath()
   }
 
@@ -188,12 +187,26 @@ class MarksmanInstaller {
     }
 
     [string] $exePath = Join-Path $this.InstallDir "marksman.exe"
+
+    # Backward-compat: if legacy location exists, migrate it to the centralized bin
+    [string] $legacyExe = "$env:LOCALAPPDATA\marksman\marksman.exe"
+    if ((Test-Path $legacyExe -PathType Leaf) -and -not (Test-Path $exePath -PathType Leaf)) {
+      try {
+        Copy-Item -Path $legacyExe -Destination $exePath -Force
+      }
+      catch { }
+    }
     
     try {
-      $ProgressPreference = 'SilentlyContinue'
-      Invoke-WebRequest -Uri $downloadUrl -OutFile $exePath -UseBasicParsing -TimeoutSec 120
-      $ProgressPreference = 'Continue'
-      
+      $previousProgressPreference = (Get-Variable -Name ProgressPreference -ValueOnly)
+      try {
+        $ProgressPreference = 'SilentlyContinue'
+        Invoke-WebRequest -Uri $downloadUrl -OutFile $exePath -UseBasicParsing -TimeoutSec 120 -ErrorAction Stop
+      }
+      finally {
+        $ProgressPreference = $previousProgressPreference
+      }
+
       if (Test-Path $exePath) {
         $this.AddLspToPath()
         $this.EnvManager.WriteSuccess("marksman installed to: $exePath")

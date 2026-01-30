@@ -231,7 +231,7 @@ class SolargraphInstaller {
       [string] $tempFile = "$env:TEMP\rubyinstaller-$($this.RubyInstallerVersion).exe"
       
       $this.EnvManager.WriteInfo("Downloading Ruby $($this.RubyInstallerVersion) from GitHub...")
-      Invoke-WebRequest -Uri $this.RubyInstallerUrl -OutFile $tempFile -UseBasicParsing -TimeoutSec 180
+      Invoke-WebRequest -Uri $this.RubyInstallerUrl -OutFile $tempFile -UseBasicParsing -TimeoutSec 180 -ErrorAction Stop
       
       if (-not (Test-Path $tempFile)) {
         $this.EnvManager.WriteError("Download failed")
