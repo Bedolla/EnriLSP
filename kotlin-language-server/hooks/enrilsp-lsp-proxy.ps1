@@ -14,7 +14,7 @@
     ENRILSP_TSDK_PATH is set.
 
   Usage:
-    powershell -ExecutionPolicy Bypass -File enrilsp-lsp-proxy.ps1 <server> [args...]
+    pwsh -ExecutionPolicy Bypass -File enrilsp-lsp-proxy.ps1 <server> [args...]
 #>
 
 param(
@@ -386,8 +386,12 @@ function Process-ClientBuffer([System.Collections.Generic.List[byte]] $clientBuf
     Try-InjectTsdk $msg
     Normalize-InitializeWorkspaceFolders $msg
     Normalize-InitializeClientCapabilities $msg
-    Ensure-InitializeWorkspaceFolderCapability $msg
-
+    if ($msg.PSObject.Properties["method"] -and $msg.method -eq "shutdown") {
+      $paramsProp = $msg.PSObject.Properties["params"]
+      if ($paramsProp -and $null -eq $paramsProp.Value) {
+        [void] $msg.PSObject.Properties.Remove("params")
+      }
+    }
     [string] $jsonOut = $msg | ConvertTo-Json -Depth 100 -Compress
     [byte[]] $outBytes = [System.Text.Encoding]::UTF8.GetBytes($jsonOut)
 

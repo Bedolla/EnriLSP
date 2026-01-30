@@ -245,7 +245,7 @@ pyright/
 |-------------|---------|-------|
 | Windows | 10/11 | Windows 10 1809+ |
 | Claude Code | 1.0.33+ | Requires plugin support ([install](https://www.npmjs.com/package/@anthropic-ai/claude-code)) |
-| PowerShell | 5.1+ | Built-in since Windows 10 1607 |
+| PowerShell (pwsh) | 7.0+ | Install via `winget install Microsoft.PowerShell` |
 | winget | 1.0+ | Built-in on Windows 11; [install on Windows 10](https://aka.ms/getwinget) |
 
 <details>
@@ -1236,7 +1236,7 @@ npm config set prefix "$env:APPDATA\npm"
    ```
 2. Run the check script manually:
    ```powershell
-   powershell -ExecutionPolicy Bypass -File .\hooks\check-<plugin>.ps1
+   pwsh -ExecutionPolicy Bypass -File .\hooks\check-<plugin>.ps1
    ```
 3. Check Claude Code logs for errors
 
