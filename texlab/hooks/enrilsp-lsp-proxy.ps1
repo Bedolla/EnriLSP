@@ -179,6 +179,51 @@ function Normalize-InitializeClientCapabilities([psobject] $message) {
   }
 }
 
+function Normalize-InitializeWorkspaceFolders([psobject] $message) {
+  if ($null -eq $message) {
+    return
+  }
+
+  if (-not ($message.PSObject.Properties["method"] -and $message.method -eq "initialize")) {
+    return
+  }
+
+  $paramsProp = $message.PSObject.Properties["params"]
+  if ($null -eq $paramsProp -or -not ($paramsProp.Value -is [psobject])) {
+    return
+  }
+
+  $params = $paramsProp.Value
+  $wfProp = $params.PSObject.Properties["workspaceFolders"]
+  if ($null -eq $wfProp -or $null -eq $wfProp.Value) {
+    return
+  }
+
+  $wf = $wfProp.Value
+
+  # LSP spec: workspaceFolders must be an array (or null). Some clients send a single object.
+  if ($wf -is [psobject]) {
+    if ($wf.PSObject.Properties["uri"]) {
+      $params.workspaceFolders = @($wf)
+      return
+    }
+
+    # Or a map/dictionary-like object; convert its values to a list.
+    $values = @()
+    foreach ($prop in $wf.PSObject.Properties) {
+      if ($null -ne $prop.Value) {
+        $values += $prop.Value
+      }
+    }
+    if ($values.Count -gt 0) {
+      $params.workspaceFolders = $values
+    }
+    return
+  }
+
+  # If it's any other enumerable (but not a string), leave it as-is.
+}
+
 function Find-HeaderEnd([System.Collections.Generic.List[byte]] $buffer) {
   for ([int] $i = 0; $i -le $buffer.Count - 4; $i++) {
     if ($buffer[$i] -eq 13 -and $buffer[$i + 1] -eq 10 -and $buffer[$i + 2] -eq 13 -and $buffer[$i + 3] -eq 10) {
@@ -318,6 +363,7 @@ try {
     }
     $msg = Fix-Value $msg
     Try-InjectTsdk $msg
+    Normalize-InitializeWorkspaceFolders $msg
     Normalize-InitializeClientCapabilities $msg
 
     [string] $jsonOut = $msg | ConvertTo-Json -Depth 100 -Compress
