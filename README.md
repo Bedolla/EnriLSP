@@ -44,10 +44,62 @@ Ejemplo de config: `enrilsp.config.example.json`.
 
 ## Ejecutar como MCP server
 
-Configura tu cliente MCP para ejecutar:
+Configura tu cliente MCP para ejecutar EnriLSP como servidor `stdio`.
 
-- Command: `node`
-- Args: `C:\path\to\EnriLSP\dist\index.js`
+### Ejemplo: Claude Code / Claude Desktop (stdio)
+
+Formato típico (similar al que ya usas con `EnriWeb`):
+
+```jsonc
+{
+  "EnriLSP": {
+    "type": "stdio",
+    "command": "node",
+    "args": ["C:\\\\Users\\\\Administrator\\\\Projects\\\\EnriLSP\\\\dist\\\\index.js"],
+    "env": {
+      // Recomendado: ruta ABSOLUTA al config que quieres usar
+      "ENRILSP_CONFIG_PATH": "C:\\\\path\\\\to\\\\your\\\\project\\\\.enrilsp.json"
+    }
+  }
+}
+```
+
+Notas:
+- `ENRILSP_CONFIG_PATH` es la forma más robusta. Si no lo seteas, EnriLSP intenta encontrar `.enrilsp.json` relativo al `cwd` del proceso (que depende del cliente MCP).
+- Dentro de `.enrilsp.json` define `rootDir` para cada server para que el LSP arranque “parado” en el proyecto correcto aunque el `cwd` del MCP sea otro.
+
+### Ejemplo: COpenCode (local)
+
+Si tu host MCP usa `type: "local"` y `command` como array (como tu ejemplo de Playwright):
+
+```jsonc
+{
+  "EnriLSP": {
+    "type": "local",
+    "command": ["node", "C:\\\\Users\\\\Administrator\\\\Projects\\\\EnriLSP\\\\dist\\\\index.js"],
+    "enabled": true,
+    "env": {
+      "ENRILSP_CONFIG_PATH": "C:\\\\path\\\\to\\\\your\\\\project\\\\.enrilsp.json"
+    }
+  }
+}
+```
+
+### Ejemplo: archivo `.enrilsp.json`
+
+```jsonc
+{
+  "servers": [
+    {
+      "name": "csharp-ls",
+      "extensions": ["cs", "csx"],
+      "command": ["C:\\\\Users\\\\Administrator\\\\.dotnet\\\\tools\\\\csharp-ls.exe", "--stdio"],
+      "rootDir": "C:\\\\path\\\\to\\\\your\\\\project",
+      "warmupMs": 500
+    }
+  ]
+}
+```
 
 ## MCP Tools disponibles
 
@@ -77,4 +129,3 @@ La arquitectura MCP↔LSP permite que **cualquier cliente MCP** use LSP *a trav�
 ## Licencia
 
 MIT (ver `LICENSE.md`).
-
