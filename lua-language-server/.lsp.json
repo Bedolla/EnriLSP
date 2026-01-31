@@ -1,9 +1,0 @@
-{
-  "lua-language-server": {
-    "command": "lua-language-server",
-    "args": ["--locale=en-us"],
-    "extensionToLanguage": {
-      ".lua": "lua"
-    }
-  }
-}

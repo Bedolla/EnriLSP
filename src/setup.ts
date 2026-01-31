@@ -63,7 +63,7 @@ export async function main(): Promise<void> {
   if (install && process.platform === "win32") {
     const thisDir = dirname(fileURLToPath(import.meta.url));
     const repoRoot = resolve(thisDir, "..");
-    const csharpInstaller = join(repoRoot, "omnisharp", "hooks", "check-omnisharp.ps1");
+    const csharpInstaller = join(repoRoot, "installers", "check-omnisharp.ps1");
 
     if (!existsSync(csharpInstaller)) {
       console.error(`[enrilsp] Windows installer script not found: ${csharpInstaller}`);
