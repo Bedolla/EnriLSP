@@ -1,6 +1,6 @@
 {
   "name": "omnisharp",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "C# language server for Windows",
   "author": {
     "name": "Bedolla"

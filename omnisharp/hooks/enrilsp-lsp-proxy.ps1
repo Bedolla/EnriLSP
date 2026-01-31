@@ -450,6 +450,46 @@ function Process-ServerBuffer([System.Collections.Generic.List[byte]] $serverBuf
     $bodyBytes = $serverBuffer.GetRange($bodyStart, $contentLength).ToArray()
     $serverBuffer.RemoveRange(0, $bodyStart + $contentLength)
 
+    # Claude Code on Windows has been observed not implementing the client-side
+    # request method `window/workDoneProgress/create`. Some servers (notably csharp-ls)
+    # treat a "method not found" response as fatal and crash.
+    #
+    # This request only affects progress UI; it's safe to short-circuit it here.
+    if ($bodyBytes.Length -lt 16384) {
+      try {
+        [string] $maybeJson = [System.Text.Encoding]::UTF8.GetString($bodyBytes)
+        if ($maybeJson -match '\"method\"\\s*:\\s*\"window/workDoneProgress/create\"') {
+          if ((Get-Command ConvertFrom-Json).Parameters.ContainsKey('Depth')) {
+            $req = $maybeJson | ConvertFrom-Json -Depth 50
+          }
+          else {
+            $req = $maybeJson | ConvertFrom-Json
+          }
+
+          $idProp = $req.PSObject.Properties["id"]
+          if ($null -ne $idProp -and $null -ne $idProp.Value) {
+            $resp = [pscustomobject]@{
+              jsonrpc = "2.0"
+              id      = $idProp.Value
+              result  = $null
+            }
+            [string] $respJson = $resp | ConvertTo-Json -Depth 10 -Compress
+            [byte[]] $respBytes = [System.Text.Encoding]::UTF8.GetBytes($respJson)
+            [string] $respHeaders = "Content-Length: $($respBytes.Length)`r`n`r`n"
+            [byte[]] $respHeaderBytes = [System.Text.Encoding]::ASCII.GetBytes($respHeaders)
+
+            $serverIn.Write($respHeaderBytes, 0, $respHeaderBytes.Length)
+            $serverIn.Write($respBytes, 0, $respBytes.Length)
+            $serverIn.Flush()
+          }
+
+          # Do not forward this request to the client.
+          continue
+        }
+      }
+      catch { }
+    }
+
     if (-not $fixShutdownErrors -or $shutdownRequestIds.Count -eq 0) {
       Write-RawMessage $clientOut $headersBytes $bodyBytes
       continue
