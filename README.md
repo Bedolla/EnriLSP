@@ -1,10 +1,56 @@
 # EnriLSP
 
-Claude Code plugin marketplace providing LSP support for Windows. Includes 32 language server plugins.
+EnriLSP is an **MCP server** that exposes **Language Server Protocol (LSP)** capabilities (go-to-definition, find references, rename, diagnostics) to **any MCP-capable client** — even if the client itself does not support LSP.
 
-Runtimes and language servers are installed automatically via winget when you run `claude --init`. No admin privileges required.
+This started as a Claude Code plugin marketplace, but that path is now considered **legacy**. The focus is: **MCP → LSP bridge** so every MCP client can benefit.
+
+## Quick Start (MCP)
+
+From this repo:
+
+```powershell
+npm install
+npm run build
+```
+
+In the project you want LSP features for:
+
+```powershell
+# Creates a project config (.enrilsp.json) with a C# (csharp-ls) server entry
+enrilsp setup
+
+# Optional: also auto-installs csharp-ls + .NET SDK (Windows only)
+enrilsp setup --install
+```
+
+Then configure your MCP client to run:
+
+- **Command**: `node`
+- **Args**: `C:\Users\Administrator\Projects\EnriLSP\dist\index.js`
+
+EnriLSP will read config from:
+
+1) `ENRILSP_CONFIG_PATH` (if set), or  
+2) a project file: `.enrilsp.json` / `enrilsp.json`, or  
+3) the default user config path (Windows): `%LOCALAPPDATA%\EnriLSP\enrilsp.json`
+
+> Note: `CLAUDE_PROJECT_DIR` and `CLAUDE_PLUGIN_ROOT` are environment variables from Claude Code's **plugin** system (legacy section below). The EnriLSP MCP server does **not** require them; it uses `ENRILSP_CONFIG_PATH` and per-server `rootDir` instead.
+
+## MCP Tools
+
+Current tools exposed:
+
+- `find_definition` (symbol → definition locations)
+- `find_references` (symbol → all references)
+- `rename_symbol` (symbol rename; can `dry_run` or apply edits on disk with `.bak` backups)
+- `get_diagnostics` (latest published diagnostics for a file)
+- `restart_servers` (restart LSP processes)
 
 ---
+
+## Legacy: Claude Code Marketplace (Deprecated)
+
+Everything below this point documents the original Claude Code plugin marketplace approach. It is kept for reference, but EnriLSP's primary direction is the MCP server described above.
 
 ## New to Claude Code Plugins? Start Here
 

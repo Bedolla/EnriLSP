@@ -1,0 +1,11 @@
+{
+  "servers": [
+    {
+      "name": "csharp-ls",
+      "extensions": ["cs", "csx"],
+      "command": ["C:\\\\Users\\\\<YOU>\\\\.dotnet\\\\tools\\\\csharp-ls.exe", "--stdio"],
+      "rootDir": "C:\\\\path\\\\to\\\\your\\\\project",
+      "warmupMs": 500
+    }
+  ]
+}
