@@ -137,7 +137,7 @@
     {
       "name": "omnisharp",
       "description": "C# language server for Windows",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "author": { "name": "Bedolla" },
       "source": "./omnisharp",
       "category": "development"
