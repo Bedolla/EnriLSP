@@ -239,12 +239,36 @@ class OmnisharpInstaller {
     "$env:LOCALAPPDATA\Programs\dotnet\dotnet.exe",
     "$env:ProgramFiles\dotnet\dotnet.exe"
   )
+  hidden [string] $ProxySourcePath
+  hidden [string] $ProxyDestDir = "$env:LOCALAPPDATA\EnriLSP\bin"
+  hidden [string] $ProxyDestPath = "$env:LOCALAPPDATA\EnriLSP\bin\enrilsp-lsp-proxy.ps1"
   # .NET SDK 10 is required for csharp-ls (latest version)
   hidden [string] $WingetPackageId = "Microsoft.DotNet.SDK.10"
 
   OmnisharpInstaller() {
     $this.EnvManager = [EnvironmentManager]::new("omnisharp")
     $this.PkgInstaller = [PackageInstaller]::new($this.EnvManager)
+    $this.ProxySourcePath = Join-Path $PSScriptRoot "enrilsp-lsp-proxy.ps1"
+  }
+
+  [bool] EnsureProxyInstalled() {
+    try {
+      if (-not (Test-Path $this.ProxyDestDir)) {
+        New-Item -ItemType Directory -Path $this.ProxyDestDir -Force | Out-Null
+      }
+
+      if (Test-Path $this.ProxySourcePath -PathType Leaf) {
+        Copy-Item -Path $this.ProxySourcePath -Destination $this.ProxyDestPath -Force
+        return (Test-Path $this.ProxyDestPath -PathType Leaf)
+      }
+
+      $this.EnvManager.WriteWarning("Proxy source not found: $($this.ProxySourcePath)")
+      return $false
+    }
+    catch {
+      $this.EnvManager.WriteWarning("Failed to install EnriLSP proxy: $($_.Exception.Message)")
+      return $false
+    }
   }
 
   [string] FindDotnetExe() {
@@ -323,6 +347,10 @@ class OmnisharpInstaller {
   }
 
   [int] Run() {
+    # Best-effort: install the proxy used to workaround Claude Code Windows LSP quirks.
+    # This should never block installation of csharp-ls itself.
+    [void] $this.EnsureProxyInstalled()
+
     # Check if LSP is already installed
     if ($this.IsLspInstalled()) {
       # Always ensure it's in PATH
