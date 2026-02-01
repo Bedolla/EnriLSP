@@ -1,0 +1,497 @@
+{
+  "servers": [
+    {
+      "name": "angular-language-server",
+      "extensions": [
+        "ts",
+        "html"
+      ],
+      "command": [
+        "cmd.exe",
+        "/c",
+        "%APPDATA%\\npm\\ngserver.cmd",
+        "--stdio",
+        "--tsProbeLocations",
+        "%APPDATA%\\npm\\node_modules",
+        "--ngProbeLocations",
+        "%APPDATA%\\npm\\node_modules"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "astro-language-server",
+      "extensions": [
+        "astro"
+      ],
+      "command": [
+        "cmd.exe",
+        "/c",
+        "%APPDATA%\\npm\\astro-ls.cmd",
+        "--stdio"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "bash-language-server",
+      "extensions": [
+        "sh",
+        "bash",
+        "zsh"
+      ],
+      "command": [
+        "cmd.exe",
+        "/c",
+        "%APPDATA%\\npm\\bash-language-server.cmd",
+        "start"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "clangd",
+      "extensions": [
+        "c",
+        "h",
+        "cpp",
+        "cc",
+        "cxx",
+        "hpp",
+        "hxx"
+      ],
+      "command": [
+        "clangd",
+        "--background-index"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "cmake-language-server",
+      "extensions": [
+        "cmake"
+      ],
+      "command": [
+        "%LOCALAPPDATA%\\EnriLSP\\cmake-language-server\\.venv\\Scripts\\cmake-language-server.exe"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "cssmodules-language-server",
+      "extensions": [
+        "module.css",
+        "module.scss",
+        "module.less",
+        "module.sass"
+      ],
+      "command": [
+        "cmd.exe",
+        "/c",
+        "%APPDATA%\\npm\\cssmodules-language-server.cmd"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "dart-analyzer",
+      "extensions": [
+        "dart"
+      ],
+      "command": [
+        "dart",
+        "language-server",
+        "--protocol=lsp"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "dockerfile-language-server",
+      "extensions": [
+        "dockerfile",
+        "Dockerfile"
+      ],
+      "command": [
+        "cmd.exe",
+        "/c",
+        "%APPDATA%\\npm\\docker-langserver.cmd",
+        "--stdio"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "ember-language-server",
+      "extensions": [
+        "hbs",
+        "js",
+        "ts"
+      ],
+      "command": [
+        "cmd.exe",
+        "/c",
+        "%APPDATA%\\npm\\ember-language-server.cmd",
+        "--stdio"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "gopls",
+      "extensions": [
+        "go",
+        "mod",
+        "sum"
+      ],
+      "command": [
+        "gopls",
+        "serve"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "graphql-lsp",
+      "extensions": [
+        "graphql",
+        "gql"
+      ],
+      "command": [
+        "cmd.exe",
+        "/c",
+        "%APPDATA%\\npm\\graphql-lsp.cmd",
+        "server",
+        "-m",
+        "stream"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "intelephense",
+      "extensions": [
+        "php",
+        "phtml"
+      ],
+      "command": [
+        "cmd.exe",
+        "/c",
+        "%APPDATA%\\npm\\intelephense.cmd",
+        "--stdio"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "jdtls",
+      "extensions": [
+        "java"
+      ],
+      "command": [
+        "cmd.exe",
+        "/c",
+        "%LOCALAPPDATA%\\EnriLSP\\jdtls\\bin\\jdtls.bat"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "kotlin-language-server",
+      "extensions": [
+        "kt",
+        "kts"
+      ],
+      "command": [
+        "cmd.exe",
+        "/c",
+        "%LOCALAPPDATA%\\EnriLSP\\kotlin-lsp\\kotlin-lsp.cmd",
+        "--stdio"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "lua-language-server",
+      "extensions": [
+        "lua"
+      ],
+      "command": [
+        "%LOCALAPPDATA%\\EnriLSP\\lua-language-server\\bin\\lua-language-server.exe",
+        "--locale=en-us"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "marksman",
+      "extensions": [
+        "md"
+      ],
+      "command": [
+        "%LOCALAPPDATA%\\EnriLSP\\bin\\marksman.exe",
+        "server"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "csharp-ls",
+      "extensions": [
+        "cs",
+        "csx"
+      ],
+      "command": [
+        "%USERPROFILE%\\.dotnet\\tools\\csharp-ls.exe",
+        "--stdio",
+        "--loglevel",
+        "error"
+      ],
+      "warmupMs": 500
+    },
+    {
+      "name": "postgres-language-server",
+      "extensions": [
+        "sql",
+        "pgsql"
+      ],
+      "command": [
+        "%LOCALAPPDATA%\\EnriLSP\\bin\\postgres-language-server.exe",
+        "lsp-proxy"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "powershell-editor-services",
+      "extensions": [
+        "ps1",
+        "psm1",
+        "psd1"
+      ],
+      "command": [
+        "pwsh",
+        "-NoLogo",
+        "-NoProfile",
+        "-NonInteractive",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "%LOCALAPPDATA%\\EnriLSP\\PowerShellEditorServices\\PowerShellEditorServices\\Start-EditorServices.ps1",
+        "-HostName",
+        "EnriLSP",
+        "-HostProfileId",
+        "enrilsp",
+        "-HostVersion",
+        "0.1.0",
+        "-BundledModulesPath",
+        "%LOCALAPPDATA%\\EnriLSP\\PowerShellEditorServices\\PowerShellEditorServices",
+        "-Stdio"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "prisma-language-server",
+      "extensions": [
+        "prisma"
+      ],
+      "command": [
+        "cmd.exe",
+        "/c",
+        "%APPDATA%\\npm\\prisma-language-server.cmd",
+        "--stdio"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "pyright",
+      "extensions": [
+        "py",
+        "pyi"
+      ],
+      "command": [
+        "cmd.exe",
+        "/c",
+        "pyright-langserver",
+        "--stdio"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "rust-analyzer",
+      "extensions": [
+        "rs"
+      ],
+      "command": [
+        "rust-analyzer"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "solargraph",
+      "extensions": [
+        "rb",
+        "rake",
+        "gemspec"
+      ],
+      "command": [
+        "cmd.exe",
+        "/c",
+        "solargraph",
+        "stdio"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "svelte-language-server",
+      "extensions": [
+        "svelte"
+      ],
+      "command": [
+        "cmd.exe",
+        "/c",
+        "%APPDATA%\\npm\\svelteserver.cmd",
+        "--stdio"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "tailwindcss-language-server",
+      "extensions": [
+        "css",
+        "html",
+        "jsx",
+        "tsx",
+        "vue"
+      ],
+      "command": [
+        "cmd.exe",
+        "/c",
+        "%APPDATA%\\npm\\tailwindcss-language-server.cmd",
+        "--stdio"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "terraform-ls",
+      "extensions": [
+        "tf",
+        "tfvars"
+      ],
+      "command": [
+        "%LOCALAPPDATA%\\EnriLSP\\bin\\terraform-ls.exe",
+        "serve"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "texlab",
+      "extensions": [
+        "tex",
+        "bib"
+      ],
+      "command": [
+        "%LOCALAPPDATA%\\EnriLSP\\bin\\texlab.exe"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "vscode-html-language-server",
+      "extensions": [
+        "html",
+        "htm"
+      ],
+      "command": [
+        "cmd.exe",
+        "/c",
+        "%APPDATA%\\npm\\vscode-html-language-server.cmd",
+        "--stdio"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "vscode-css-language-server",
+      "extensions": [
+        "css",
+        "scss",
+        "less"
+      ],
+      "command": [
+        "cmd.exe",
+        "/c",
+        "%APPDATA%\\npm\\vscode-css-language-server.cmd",
+        "--stdio"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "vscode-json-language-server",
+      "extensions": [
+        "json",
+        "jsonc"
+      ],
+      "command": [
+        "cmd.exe",
+        "/c",
+        "%APPDATA%\\npm\\vscode-json-language-server.cmd",
+        "--stdio"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "vscode-eslint-language-server",
+      "extensions": [
+        "js",
+        "jsx",
+        "ts",
+        "tsx"
+      ],
+      "command": [
+        "cmd.exe",
+        "/c",
+        "%APPDATA%\\npm\\vscode-eslint-language-server.cmd",
+        "--stdio"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "vtsls",
+      "extensions": [
+        "ts",
+        "tsx",
+        "js",
+        "jsx",
+        "mjs",
+        "cjs"
+      ],
+      "command": [
+        "cmd.exe",
+        "/c",
+        "%APPDATA%\\npm\\vtsls.cmd",
+        "--stdio"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "vue-language-server",
+      "extensions": [
+        "vue"
+      ],
+      "command": [
+        "cmd.exe",
+        "/c",
+        "%APPDATA%\\npm\\vue-language-server.cmd",
+        "--stdio"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "yaml-language-server",
+      "extensions": [
+        "yaml",
+        "yml"
+      ],
+      "command": [
+        "cmd.exe",
+        "/c",
+        "%APPDATA%\\npm\\yaml-language-server.cmd",
+        "--stdio"
+      ],
+      "warmupMs": 0
+    },
+    {
+      "name": "zls",
+      "extensions": [
+        "zig"
+      ],
+      "command": [
+        "%LOCALAPPDATA%\\EnriLSP\\bin\\zls.exe"
+      ],
+      "warmupMs": 0
+    }
+  ]
+}

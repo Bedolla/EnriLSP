@@ -1,0 +1,10 @@
+{
+  "servers": [
+    {
+      "name": "csharp-ls",
+      "extensions": ["cs", "csx"],
+      "command": ["%USERPROFILE%\\.dotnet\\tools\\csharp-ls.exe", "--stdio", "--loglevel", "error"],
+      "warmupMs": 500
+    }
+  ]
+}
